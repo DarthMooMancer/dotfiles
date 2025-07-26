@@ -29,10 +29,10 @@ for x in "${!COPY_DOTS[@]}"; do
 	i="${COPY_DOTS[${x}]}"
 	if [[ -d ${i} ]]; then
 		echo -e "${i} ${GREEN}exists: Removing${RESET}"
-		rm -rd "${i}"
+		doas rm -rd "${i}"
 	elif [[ -f ${i} ]]; then
 		echo -e "${i} ${GREEN}exists: Removing${RESET}"
-		rm -rf "${i}"
+		doas rm -rf "${i}"
 	else
 		echo -e "${i} ${YELLOW}does not exist: Skipping${RESET}"
 	fi
