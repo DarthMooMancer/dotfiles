@@ -1,0 +1,62 @@
+#!/bin/bash
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RESET='\033[0m'
+
+DOTFILES_HOME="/home/andrew/dotfiles/"
+DOTFILES_CONFIG="${DOTFILES_HOME}.config/"
+DOTFILES_LOCAL="${DOTFILES_HOME}.local/"
+
+PERSONAL_HOME="/home/andrew/"
+CONFIG="${PERSONAL_HOME}.config/"
+LOCAL="${PERSONAL_HOME}.local/"
+
+ORIGINAL_DOTS=(
+	"${DOTFILES_CONFIG}nvim/"
+	"${DOTFILES_CONFIG}suckless/"
+	"${DOTFILES_LOCAL}share/fonts/"
+	"${DOTFILES_HOME}.xinitrc"
+	"${DOTFILES_HOME}.bashrc") 
+COPY_DOTS=(
+	"${CONFIG}nvim/"
+	"${CONFIG}suckless/"
+	"${LOCAL}share/fonts/"
+	"${PERSONAL_HOME}.xinitrc"
+	"${PERSONAL_HOME}.bashrc") 
+
+for x in "${!COPY_DOTS[@]}"; do
+	i="${COPY_DOTS[${x}]}"
+	if [[ -d ${i} ]]; then
+		echo -e "${i} ${GREEN}exists: Removing${RESET}"
+		rm -rd "${i}"
+	elif [[ -f ${i} ]]; then
+		echo -e "${i} ${GREEN}exists: Removing${RESET}"
+		rm -rf "${i}"
+	else
+		echo -e "${i} ${YELLOW}does not exist: Skipping${RESET}"
+	fi
+done
+
+for x in "${!ORIGINAL_DOTS[@]}"; do
+	i="${ORIGINAL_DOTS[${x}]}"
+	if [[ -d ${i} ]]; then
+		echo "Directory: ${i} -> ${COPY_DOTS[${x}]}"
+		cp -r ${i} ${COPY_DOTS[${x}]}
+	fi
+
+	if [[ -f ${i} ]]; then
+		echo "File: ${i} -> ${COPY_DOTS[${x}]}"
+		cp ${i} ${COPY_DOTS[${x}]}
+	fi
+
+done
+
+echo -e "${GREEN}Re-caching fonts${RESET}"
+fc-cache -f
+
+echo -e "${GREEN}Rebuilding Suckless Software${RESET}"
+for x in "${CONFIG}suckless"/*/; do
+	[[ -d "${x}" ]] || continue
+	cd "${x}" && doas rm -rf config.h && make && doas make install
+done

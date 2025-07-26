@@ -1,3 +1,30 @@
+-- Bootstrap lazy.nvim
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
+	local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", "https://github.com/folke/lazy.nvim.git", lazypath })
+end
+vim.opt.rtp:prepend(lazypath)
+
+vim.g.mapleader = " "
+require("lazy").setup({
+	spec = {
+		"neovim/nvim-lspconfig",
+		"nvim-treesitter/nvim-treesitter",
+		"cohama/lexima.vim",
+		"DarthMoomancer/Polydev",
+		"nvim-telescope/telescope.nvim",
+		"nvim-lua/plenary.nvim",
+		{ "saghen/blink.cmp", version = "v1.*", opts = {
+			completion = {
+				ghost_text = {
+					enabled = true
+				}
+			}
+		}
+	},
+	checker = { enabled = true },
+	},
+})
 vim.opt.mouse =  ""
 vim.opt.completeopt = "noselect"
 vim.opt.termguicolors = true
@@ -9,7 +36,6 @@ vim.opt.hlsearch = false
 vim.opt.swapfile = false
 vim.opt.clipboard = unnamedplus
 
-vim.g.mapleader = " "
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
 vim.keymap.set("x", "<leader>p", [["_dP]])
@@ -19,7 +45,7 @@ vim.keymap.set('n', '<leader>xg', ":Telescope live_grep<CR>", { desc = 'Telescop
 vim.keymap.set('n', '<leader>xh', ":Telescope help_tags<CR>", { desc = 'Telescope help tags' })
 vim.keymap.set("n", "<leader>xc", "<Cmd>cclose<CR>")
 vim.keymap.set("n", "<leader>xx", function()
-  vim.diagnostic.setqflist({ open = true })
+	vim.diagnostic.setqflist({ open = true })
 end, { desc = "Show diagnostics in quickfix" })
 
 vim.cmd.colorscheme('everforest')
@@ -32,24 +58,6 @@ vim.api.nvim_create_autocmd("FileType", {
 	end,
 })
 
-
-vim.pack.add({
-	"neovim/nvim-lspconfig",
-	"nvim-treesitter/nvim-treesitter",
-	"cohama/lexima.vim",
-	"DarthMoomancer/Polydev",
-	"nvim-telescope/telescope.nvim",
-	"nvim-lua/plenary.nvim",
-	{ src = "saghen/blink.cmp", version = "v1.*" },
-})
-
-require("blink.cmp").setup({
-	completion = {
-		ghost_text = {
-			enabled = true
-		}
-	}
-})
 require("nvim-treesitter.configs").setup({
 	highlight = { enable = true },
 	indent = { enable = true }

@@ -19,7 +19,7 @@ done
 
 shift $((OPTIND - 1))
 APP="$1"
-APP_DIR="$HOME/.config/suckless/$APP"
+APP_DIR="/home/andrew/dotfiles/.config/suckless/$APP"
 CONFIG_FILE="$APP_DIR/config.def.h"
 
 if [[ -z "$APP" ]]; then
@@ -52,9 +52,9 @@ AFTER_HASH=$(sha256sum config.def.h | cut -d ' ' -f1)
 
 if [[ "$BEFORE_HASH" != "$AFTER_HASH" || "$REBUILD" == true ]]; then
     echo "Rebuilding $APP..."
-    sudo rm -f config.h
+    doas rm -f config.h
     make
-    sudo make install
+    doas make install
     pkill dwm
 else
     echo "No changes detected. Skipping rebuild."

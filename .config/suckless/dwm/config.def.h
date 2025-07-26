@@ -7,7 +7,6 @@ static const int topbar             = 1;
 static const char *barlayout        = "t|s";
 
 static const char *fonts[]          = { "CaskaydiaCove NFM style:SemiBold:size=11" };
-static const char dmenufont[]       = { "CaskaydiaCove NFM style:SemiBold:size=12" };
 static const char *colors[][3]      = {
 	[SchemeNorm] = { foreground, background, aqua },
 	[SchemeSel]  = { dark_gray, yellow, green },
@@ -17,7 +16,7 @@ static const char *tags[] = { "1", "2", "3", "4" };
 static const Rule rules[] = {
 	/* class    instance        title     tags mask   isfloating   monitor */
 	{ "PrismLauncher", "prismlauncher",		NULL, 		1 << 2,      	0, 	-1 },
-	{ "mercury-browser", "mercury-browser",	       	NULL, 		1 << 1, 	0, 	-1 }, 
+	{ "mercury-default", "Navigator",	       	NULL, 		1 << 1, 	0, 	-1 }, 
 	{ "steam", "steamwebhelper",		        NULL, 		1 << 2, 	0, 	-1 }, 
 	{ "st-256color", "st-256color",			NULL, 		1,      	0, 	-1 },
 };
@@ -39,9 +38,8 @@ static const Layout layouts[] = {	{ "[]=",      tile } };
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 static char dmenumon[2] = "0";
-static const char *dmenucmd[] = { "dmenu_run", "-g", "6", "-l", "3", "-m", dmenumon, "-fn", dmenufont, "-nb", background, "-nf", foreground, "-sb", blue, "-sf", dark_gray, NULL };
+static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, NULL };
 static const char *termcmd[]  = { "st", NULL };
-static const char *browser[]  = { "firefox-bin", NULL };
 
 #include "movestack.c"
 #include "X11/XF86keysym.h"
