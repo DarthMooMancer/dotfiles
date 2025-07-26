@@ -1,5 +1,5 @@
 VERSION = 1.0
-MANPREFIX = /usr/local/share/man
+PREFIX = /usr/local
 
 CPPFLAGS = $(shell pkg-config --cflags x11) -D_DEFAULT_SOURCE -DVERSION=\"${VERSION}\"
 LDFLAGS  = $(shell pkg-config --libs-only-L x11) -s

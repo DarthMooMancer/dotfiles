@@ -1,4 +1,3 @@
-#include "/home/andrew/.config/suckless/dwm/themes/everforest.h"
 static const unsigned int borderpx  = 3;
 static const unsigned int gappx	    = 10;
 static const unsigned int snap      = 32;
@@ -8,8 +7,8 @@ static const char *barlayout        = "t|s";
 
 static const char *fonts[]          = { "CaskaydiaCove NFM style:SemiBold:size=11" };
 static const char *colors[][3]      = {
-	[SchemeNorm] = { foreground, background, aqua },
-	[SchemeSel]  = { dark_gray, yellow, green },
+	[SchemeNorm] = { "#D3C6AA", "#272E33", "#83C092" },
+	[SchemeSel]  = { "#374145", "#DBBC7F", "#A7C080" },
 };
 
 static const char *tags[] = { "1", "2", "3", "4" };
@@ -41,7 +40,6 @@ static char dmenumon[2] = "0";
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, NULL };
 static const char *termcmd[]  = { "st", NULL };
 
-#include "movestack.c"
 #include "X11/XF86keysym.h"
 static const Key keys[] = {
 	{ MODKEY,                       XK_Return, 			spawn,          {.v = termcmd } },
@@ -54,8 +52,6 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_i,				incnmaster,     {.i = +1 } },
 	{ MODKEY,                       XK_d,				incnmaster,     {.i = -1 } },
 	{ MODKEY,			XK_q,				killclient,     {0} },
-	{ MODKEY|ShiftMask,             XK_j,				movestack,      {.i = +1 } },
-	{ MODKEY|ShiftMask,             XK_k,				movestack,      {.i = -1 } },
 	{ MODKEY|ShiftMask,             XK_Return,			zoom,           {0} },
 	{ MODKEY|ShiftMask,             XK_space,			togglefloating, {0} },
 	{ MODKEY|ShiftMask,             XK_0,				tag,            {.ui = ~0 } },

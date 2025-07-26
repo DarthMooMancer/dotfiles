@@ -20,7 +20,7 @@ done
 shift $((OPTIND - 1))
 APP="$1"
 APP_DIR="/home/andrew/dotfiles/.config/suckless/$APP"
-CONFIG_FILE="$APP_DIR/config.def.h"
+CONFIG_FILE="$APP_DIR/config.h"
 
 if [[ -z "$APP" ]]; then
     echo "Usage: 
@@ -42,19 +42,18 @@ cd "$APP_DIR" || {
 }
 
 # Hash before edit
-BEFORE_HASH=$(sha256sum config.def.h | cut -d ' ' -f1)
+BEFORE_HASH=$(sha256sum config.h | cut -d ' ' -f1)
 
 # Edit file
-nvim config.def.h
+nvim config.h
 
 # Hash after edit
-AFTER_HASH=$(sha256sum config.def.h | cut -d ' ' -f1)
+AFTER_HASH=$(sha256sum config.h | cut -d ' ' -f1)
 
 if [[ "$BEFORE_HASH" != "$AFTER_HASH" || "$REBUILD" == true ]]; then
     echo "Rebuilding $APP..."
-    doas rm -f config.h
     make
-    doas make install
+    doas make clean install
     pkill dwm
 else
     echo "No changes detected. Skipping rebuild."
