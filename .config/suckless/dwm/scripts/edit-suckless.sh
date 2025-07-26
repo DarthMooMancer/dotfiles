@@ -53,7 +53,8 @@ AFTER_HASH=$(sha256sum config.h | cut -d ' ' -f1)
 if [[ "$BEFORE_HASH" != "$AFTER_HASH" || "$REBUILD" == true ]]; then
     echo "Rebuilding $APP..."
     make
-    doas make clean install
+    doas make install
+    make clean
     pkill dwm
 else
     echo "No changes detected. Skipping rebuild."

@@ -58,5 +58,5 @@ fc-cache -f
 echo -e "${GREEN}Rebuilding Suckless Software${RESET}"
 for x in "${CONFIG}suckless"/*/; do
 	[[ -d "${x}" ]] || continue
-	cd "${x}" && make && doas make install
+	cd "${x}" && make && doas make install && make clean
 done
