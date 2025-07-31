@@ -13,11 +13,10 @@ static const char *colors[][3]      = {
 
 static const char *tags[] = { "1", "2", "3", "4" };
 static const Rule rules[] = {
-	/* class    instance        title     tags mask   isfloating   monitor */
-	{ "PrismLauncher", "prismlauncher",		NULL, 		1 << 2,      	0, 	-1 },
-	{ "mercury-default", "Navigator",	       	NULL, 		1 << 1, 	0, 	-1 }, 
-	{ "steam", "steamwebhelper",		        NULL, 		1 << 2, 	0, 	-1 }, 
-	{ "st-256color", "st-256color",			NULL, 		1,      	0, 	-1 },
+	{ "PrismLauncher", "prismlauncher",	NULL, 	1 << 2,	  0,   -1 },
+	{ "librewolf", "Navigator",	NULL, 	1 << 1,	  0,   -1 }, 
+	{ "steam", "steamwebhelper",		NULL, 	1 << 2,   0,   -1 }, 
+	{ "st-256color", "st-256color",		NULL, 	1,        0,   -1 },
 };
 
 static const float mfact     = 0.55;
@@ -25,7 +24,10 @@ static const int nmaster     = 1;
 static const int resizehints = 1;
 static const int lockfullscreen = 1;
 
-static const Layout layouts[] = {	{ "[]=",      tile } };
+static const Layout layouts[] = {
+	{ "[]=",      tile },
+	{ "><>",      NULL },    /* no layout function means floating behavior */
+};
 
 #define MODKEY Mod1Mask
 #define TAGKEYS(KEY,TAG) \
@@ -39,12 +41,13 @@ static const Layout layouts[] = {	{ "[]=",      tile } };
 static char dmenumon[2] = "0";
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, NULL };
 static const char *termcmd[]  = { "st", NULL };
+static const char *browsercmd[]  = { "librewolf", NULL };
 
 #include "X11/XF86keysym.h"
 static const Key keys[] = {
 	{ MODKEY,                       XK_Return, 			spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_space,      			spawn,          {.v = dmenucmd } },
-	{ MODKEY,                       XK_f,      			spawn,          SHCMD("cd /home/andrew/mercury-browser/ && ./MERCURY_PORTABLE") },
+	{ MODKEY,                       XK_f,      			spawn,          {.v = browsercmd } },
 	{ MODKEY,                       XK_h,				focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_l,				focusstack,     {.i = -1 } },
 	{ MODKEY,                       XK_j,				setmfact,       {.f = -0.05} },
@@ -64,9 +67,9 @@ static const Key keys[] = {
 	{ 0, 				XF86XK_AudioMute,	   	spawn, 		SHCMD("pactl set-sink-mute @DEFAULT_SINK@ toggle") }, 
 
 	TAGKEYS(                        XK_1,						0 )
-	TAGKEYS(                        XK_2,						1 )
-	TAGKEYS(                        XK_3,						2 )
-	TAGKEYS(                        XK_4,						3 )
+		TAGKEYS(                        XK_2,						1 )
+		TAGKEYS(                        XK_3,						2 )
+		TAGKEYS(                        XK_4,						3 )
 };
 
 static const Button buttons[] = {
