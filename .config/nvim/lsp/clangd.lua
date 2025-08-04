@@ -1,17 +1,3 @@
----@brief
----
---- https://clangd.llvm.org/installation.html
----
---- - **NOTE:** Clang >= 11 is recommended! See [#23](https://github.com/neovim/nvim-lspconfig/issues/23).
---- - If `compile_commands.json` lives in a build directory, you should
----   symlink it to the root of your source tree.
----   ```
----   ln -s /path/to/myproject/build/compile_commands.json /path/to/myproject/
----   ```
---- - clangd relies on a [JSON compilation database](https://clang.llvm.org/docs/JSONCompilationDatabase.html)
----   specified as compile_commands.json, see https://clangd.llvm.org/installation#compile_commandsjson
-
--- https://clangd.llvm.org/extensions.html#switch-between-sourceheader
 local function switch_source_header(bufnr)
 	local method_name = 'textDocument/switchSourceHeader'
 	local client = vim.lsp.get_clients({ bufnr = bufnr, name = 'clangd' })[1]
@@ -41,7 +27,6 @@ local function symbol_info()
 	local params = vim.lsp.util.make_position_params(win, clangd_client.offset_encoding)
 	clangd_client.request('textDocument/symbolInfo', params, function(err, res)
 		if err or #res == 0 then
-			-- Clangd always returns an error, there is not reason to parse it
 			return
 		end
 		local container = string.format('container: %s', res[1].containerName) ---@type string
@@ -56,9 +41,6 @@ local function symbol_info()
 		})
 	end, bufnr)
 end
-
----@class ClangdInitializeResult: lsp.InitializeResult
----@field offsetEncoding? string
 
 return {
 	cmd = { 'clangd' },
@@ -80,8 +62,6 @@ return {
 		},
 		offsetEncoding = { 'utf-8', 'utf-16' },
 	},
-	---@param client vim.lsp.Client
-	---@param init_result ClangdInitializeResult
 	on_init = function(client, init_result)
 		if init_result.offsetEncoding then
 			client.offset_encoding = init_result.offsetEncoding

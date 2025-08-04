@@ -1,11 +1,3 @@
-" =============================================================================
-" URL: https://github.com/sainnhe/everforest
-" Filename: autoload/everforest.vim
-" Author: sainnhe
-" Email: i@sainnhe.dev
-" License: MIT License
-" =============================================================================
-
 function! everforest#get_configuration() "{{{
   return {
         \ 'background': get(g:, 'everforest_background', 'medium'),
