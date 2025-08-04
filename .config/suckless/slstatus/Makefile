@@ -3,15 +3,12 @@
 include config.mk
 
 # Objects we actually need
-OBJ = slstatus.o util.o
+OBJ = slstatus.o
 
 all: slstatus
 
-slstatus.o: slstatus.c util.h
+slstatus.o: slstatus.c
 	$(CC) -o $@ -c $(CPPFLAGS) $(CFLAGS) slstatus.c
-
-util.o: util.c util.h
-	$(CC) -o $@ -c $(CPPFLAGS) $(CFLAGS) util.c
 
 slstatus: $(OBJ)
 	$(CC) -o $@ $(LDFLAGS) $(OBJ) $(LDLIBS)

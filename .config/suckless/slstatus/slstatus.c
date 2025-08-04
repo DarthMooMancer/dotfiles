@@ -5,23 +5,58 @@
 #include <string.h>
 #include <time.h>
 #include <X11/Xlib.h>
+#include <stdarg.h>
+#include <stdint.h>
+#define LEN(x) (sizeof(x) / sizeof((x)[0]))
+#define MAXLEN 2048
 
-#include "util.h"
+char buf[1024];
+static volatile sig_atomic_t done;
+static Display *dpy;
+const unsigned short interval = 1000;
+const char unknown_str[] = "n/a";
+
+void
+die(const char *fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+
+	if (fmt[0] && fmt[strlen(fmt) - 1] == ':') {
+		fputc(' ', stderr);
+		perror(NULL);
+	} else {
+		fputc('\n', stderr);
+	}
+	va_end(ap);
+	exit(1);
+}
+
+int
+esnprintf(char *str, size_t size, const char *fmt, ...)
+{
+	va_list ap;
+	int ret;
+
+	va_start(ap, fmt);
+	ret = vsnprintf(str, size, fmt, ap);
+
+	if (ret < 0) {
+		return -1;
+	} else if ((size_t)ret >= size) {
+		return -1;
+	}
+	va_end(ap);
+
+	return ret;
+}
 
 struct arg {
 	const char *(*func)(const char *);
 	const char *fmt;
 	const char *args;
 };
-
-char buf[1024];
-static volatile sig_atomic_t done;
-static Display *dpy;
-
-const unsigned short interval = 1000;
-const char unknown_str[] = "n/a";
-#define MAXLEN 2048
-
 
 static void
 terminate(const int signo)
@@ -63,7 +98,7 @@ run_command(const char *cmd)
 
 static const
 struct arg args[] = {
-	{ run_command, 	" %s till swap •  ", 	"sh /home/andrew/.config/suckless/slstatus/scripts/wallpaper-countdown.sh" },
+	{ run_command, 	" %s till swap  •  ", 	"sh /home/andrew/.config/suckless/slstatus/wallpaper-countdown.sh" },
 	{ run_command, 	"VOL at %s  •  ", 	"wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{printf \"%d%%\", $2 * 100}'" },
 	{ run_command,	"%s / 731 installed ", 	"sh -c 'echo $(( ( $(date +%s) - $(stat -c %W /) ) / 86400 ))'" },
 };
