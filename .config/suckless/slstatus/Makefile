@@ -1,20 +1,19 @@
 .POSIX:
 
-include config.mk
-
-# Objects we actually need
-OBJ = slstatus.o
+PREFIX  = /usr/local
+CC      = gcc
+CFLAGS  = -std=c17 -pedantic -Wall -Wextra -Wno-unused-parameter -O2 -march=native \
+           $(shell pkg-config --cflags x11) -D_DEFAULT_SOURCE
+LDFLAGS = -s $(shell pkg-config --libs-only-L x11)
+LDLIBS  = $(shell pkg-config --libs-only-l x11)
 
 all: slstatus
 
-slstatus.o: slstatus.c
-	$(CC) -o $@ -c $(CPPFLAGS) $(CFLAGS) slstatus.c
-
-slstatus: $(OBJ)
-	$(CC) -o $@ $(LDFLAGS) $(OBJ) $(LDLIBS)
+slstatus: slstatus.c
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS) $(LDLIBS)
 
 clean:
-	rm -f slstatus $(OBJ)
+	rm -f slstatus
 
 install: all
 	mkdir -p "$(DESTDIR)$(PREFIX)/bin"
