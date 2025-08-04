@@ -1,4 +1,7 @@
-#include <errno.h>
+#define _GNU_SOURCE
+#include <fcntl.h>        // for AT_FDCWD
+#include <sys/syscall.h>
+#include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,41 +9,17 @@
 #include <time.h>
 #include <X11/Xlib.h>
 #include <stdarg.h>
-#include <stdint.h>
-#define LEN(x) (sizeof(x) / sizeof((x)[0]))
-#define MAXLEN 2048
+#include <sys/stat.h>
 
-char buf[1024];
 static volatile sig_atomic_t done;
-static Display *dpy;
-const unsigned short interval = 1000;
-const char unknown_str[] = "n/a";
 
 void die(const char *fmt, ...) {
 	va_list ap;
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
-
-	if (fmt[0] && fmt[strlen(fmt) - 1] == ':') {
-		fputc(' ', stderr);
-		perror(NULL);
-	} else fputc('\n', stderr);
 	va_end(ap);
+	fputc('\n', stderr);
 	exit(1);
-}
-
-int esnprintf(char *str, size_t size, const char *fmt, ...) {
-	va_list ap;
-	int ret;
-
-	va_start(ap, fmt);
-	ret = vsnprintf(str, size, fmt, ap);
-
-	if (ret < 0) return -1;
-	else if ((size_t)ret >= size) return -1;
-	va_end(ap);
-
-	return ret;
 }
 
 struct arg {
@@ -49,73 +28,79 @@ struct arg {
 	const char *args;
 };
 
-static void terminate(const int signo) {
-	if (signo != SIGUSR1)
-		done = 1;
+static void terminate() {
+	done = 1;
 }
 
-static void difftimespec(struct timespec *res, struct timespec *a, struct timespec *b) {
-	res->tv_sec = a->tv_sec - b->tv_sec - (a->tv_nsec < b->tv_nsec);
-	res->tv_nsec = a->tv_nsec - b->tv_nsec + (a->tv_nsec < b->tv_nsec) * 1E9;
-}
+const char* bg_timer(const char *unused) {
+	(void)unused;
+	static char buf[6];
+	time_t now = time(NULL), last = now;
+	FILE *f = fopen("/tmp/last_wallpaper_time", "r");
+	if (f) {
+		if (fscanf(f, "%ld", &last) != 1) last = now;
+		fclose(f);
+	}
 
-const char* wallpaper_countdown(const char *unused) {
-    (void)unused;
-    time_t now = time(NULL), last = now;
-    FILE *f = fopen("/tmp/last_wallpaper_time", "r");
-    if (f) {
-        if (fscanf(f, "%ld", &last) != 1) last = now;
-        fclose(f);
-    }
-
-    int rem = 600 - (int)(now - last);
-    if (rem < 0) rem = 0;
-    if (snprintf(buf, sizeof(buf), "%02d:%02d", (rem / 60), (rem % 60)) < 0) return NULL;
-    return buf;
+	int rem = 600 - (int)(now - last);
+	if (rem < 0) rem = 0;
+	if (snprintf(buf, sizeof(buf), "%02d:%02d", (rem / 60), (rem % 60)) < 0) return NULL;
+	return buf;
 }
 
 const char* run_command(const char *cmd) {
-	char *p;
-	FILE *fp;
-
-	if (!(fp = popen(cmd, "r"))) return NULL;
-	p = fgets(buf, sizeof(buf) - 1, fp);
-	if (pclose(fp) < 0) return NULL;
+	static char buf[8];
+	FILE *fp = popen(cmd, "r");
+	if (!fp) return NULL;
+	char *p = fgets(buf, sizeof(buf) - 1, fp);
+	pclose(fp);
 	if (!p) return NULL;
-	if ((p = strrchr(buf, '\n'))) p[0] = '\0';
-	return buf[0] ? buf : NULL;
+	if ((p = strrchr(buf, '\n'))) *p = '\0';
+	return *buf ? buf : NULL;
 }
 
-static const struct arg args[] = {
-	{ wallpaper_countdown, 	" %s till swap  •  ", NULL },	
-	{ run_command, 	"VOL at %s  •  ", 	"wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{printf \"%d%%\", $2 * 100}'" },
-	{ run_command,	"%s / 731 installed ", 	"sh -c 'echo $(( ( $(date +%s) - $(stat -c %W /) ) / 86400 ))'" },
-};
+const char* age(const char *_) {
+    static char buf[4];
+    static time_t last;
+    time_t now = time(NULL);
+    if (now - last < 3600) return buf;
+
+    time_t created = 0;
+    struct statx stx;
+    if (!syscall(SYS_statx, AT_FDCWD, "/", 0, STATX_BTIME, &stx) && (stx.stx_mask & STATX_BTIME)) created = stx.stx_btime.tv_sec;
+    else created = now;
+
+    snprintf(buf, sizeof(buf), "%d", (int)((now - created) / 86400));
+    last = now;
+    return buf;
+}
 
 int main(int argc, char *argv[]) {
+	static Display *dpy;
 	struct sigaction act;
-	struct timespec start, current, diff, intspec, wait;
 	size_t i, len;
 	int ret;
-	char status[MAXLEN];
+	char status[64];
 	const char *res;
+	static const struct arg args[] = {
+		{ bg_timer, 	" %s till swap · ", 	NULL },	
+		{ run_command, 	"VOL at %s · ", 	"wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{printf \"%d%%\", $2 * 100}'" },
+		{ age,		"%s / 731 installed ", 	NULL },
+	};
 
 	memset(&act, 0, sizeof(act));
 	act.sa_handler = terminate;
 	sigaction(SIGINT,  &act, NULL);
 	sigaction(SIGTERM, &act, NULL);
 	act.sa_flags |= SA_RESTART;
-	sigaction(SIGUSR1, &act, NULL);
 
-	if (!(dpy = XOpenDisplay(NULL)))
-		die("XOpenDisplay: Failed to open display");
+	if (!(dpy = XOpenDisplay(NULL))) die("XOpenDisplay: Failed to open display");
 	do {
-		if (clock_gettime(CLOCK_MONOTONIC, &start) < 0) die("clock_gettime:");
 		status[0] = '\0';
-		for (i = len = 0; i < LEN(args); i++) {
-			if (!(res = args[i].func(args[i].args))) res = unknown_str;
-			if ((ret = esnprintf(status + len, sizeof(status) - len, args[i].fmt, res)) < 0)
-				break;
+		for (i = len = 0; i < (sizeof(args) / sizeof(args[0])); i++) {
+			res = args[i].func(args[i].args);
+			if (!res) res = "n/a";
+			if ((ret = snprintf(status + len, sizeof(status) - len, args[i].fmt, res)) < 0) break;
 			len += ret;
 		}
 
@@ -123,14 +108,8 @@ int main(int argc, char *argv[]) {
 		XFlush(dpy);
 
 		if (!done) {
-			if (clock_gettime(CLOCK_MONOTONIC, &current) < 0) die("clock_gettime:");
-			difftimespec(&diff, &current, &start);
-
-			intspec.tv_sec = interval / 1000;
-			intspec.tv_nsec = (interval % 1000) * 1E6;
-			difftimespec(&wait, &intspec, &diff);
-
-			if (wait.tv_sec >= 0 && nanosleep(&wait, NULL) < 0 && errno != EINTR) die("nanosleep:");
+			struct timespec ts = { .tv_sec = 0, .tv_nsec = 100 * 1000000 }; // 100ms
+			nanosleep(&ts, NULL);
 		}
 	} while (!done);
 
