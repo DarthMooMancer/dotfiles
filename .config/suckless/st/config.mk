@@ -1,4 +1,4 @@
-VERSION = 0.9.2
+# VERSION = 0.9.2
 
 PREFIX = /usr/local
 
@@ -16,7 +16,7 @@ LIBS = -L$(X11LIB) -lm -lrt -lX11 -lutil -lXft \
        `$(PKG_CONFIG) --libs freetype2`
 
 # flags
-STCPPFLAGS = -DVERSION=\"$(VERSION)\" -D_XOPEN_SOURCE=600
+STCPPFLAGS = -D_XOPEN_SOURCE=600 # -DVERSION=\"$(VERSION)\" 
 STCFLAGS = $(INCS) $(STCPPFLAGS) $(CPPFLAGS) $(CFLAGS)
 STLDFLAGS = $(LIBS) $(LDFLAGS)
 

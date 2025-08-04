@@ -1,4 +1,3 @@
-/* See LICENSE file for copyright and license details. */
 #include <stdint.h>
 
 extern char buf[1024];
@@ -7,7 +6,6 @@ extern char buf[1024];
 
 extern char *argv0;
 
-void warn(const char *, ...);
 void die(const char *, ...);
 
 int esnprintf(char *str, size_t size, const char *fmt, ...);

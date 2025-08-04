@@ -1,5 +1,3 @@
-/* See LICENSE for license details. */
-
 enum win_mode {
 	MODE_VISIBLE     = 1 << 0,
 	MODE_FOCUSED     = 1 << 1,
@@ -33,7 +31,7 @@ int xsetcolorname(int, const char *);
 int xgetcolor(int, unsigned char *, unsigned char *, unsigned char *);
 void xseticontitle(char *);
 void xsettitle(char *);
-int xsetcursor(int);
+// int xsetcursor(int);
 void xsetmode(int, unsigned int);
 void xsetpointermotion(int);
 void xsetsel(char *);

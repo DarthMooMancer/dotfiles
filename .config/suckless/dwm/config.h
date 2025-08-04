@@ -3,7 +3,6 @@ static const unsigned int gappx	    = 10;
 static const unsigned int snap      = 32;
 static const int showbar            = 1;
 static const int topbar             = 1;
-static const char *barlayout        = "t|s";
 
 static const char *fonts[]          = { "CaskaydiaCove NFM style:SemiBold:size=11" };
 static const char *colors[][3]      = {
@@ -26,7 +25,6 @@ static const int lockfullscreen = 1;
 
 static const Layout layouts[] = {
 	{ "[]=",      tile },
-	{ "><>",      NULL },    /* no layout function means floating behavior */
 };
 
 #define MODKEY Mod1Mask

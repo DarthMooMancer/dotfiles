@@ -1560,31 +1560,7 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 
 	/* draw the new one */
 	if (IS_SET(MODE_FOCUSED)) {
-		switch (win.cursor) {
-		case 7: /* st extension */
-			g.u = 0x2603; /* snowman (U+2603) */
-			/* FALLTHROUGH */
-		case 0: /* Blinking Block */
-		case 1: /* Blinking Block (Default) */
-		case 2: /* Steady Block */
-			xdrawglyph(g, cx, cy);
-			break;
-		case 3: /* Blinking Underline */
-		case 4: /* Steady Underline */
-			XftDrawRect(xw.draw, &drawcol,
-					win.hborderpx + cx * win.cw,
-					win.vborderpx + (cy + 1) * win.ch - \
-						cursorthickness,
-					win.cw, cursorthickness);
-			break;
-		case 5: /* Blinking bar */
-		case 6: /* Steady bar */
-			XftDrawRect(xw.draw, &drawcol,
-					win.hborderpx + cx * win.cw,
-					win.vborderpx + cy * win.ch,
-					cursorthickness, win.ch);
-			break;
-		}
+		xdrawglyph(g, cx, cy);
 	} else {
 		XftDrawRect(xw.draw, &drawcol,
 				win.hborderpx + cx * win.cw,
@@ -1741,15 +1717,6 @@ xsetmode(int set, unsigned int flags)
 	MODBIT(win.mode, set, flags);
 	if ((win.mode & MODE_REVERSE) != (mode & MODE_REVERSE))
 		redraw();
-}
-
-int
-xsetcursor(int cursor)
-{
-	if (!BETWEEN(cursor, 0, 7)) /* 7: st extension */
-		return 1;
-	win.cursor = cursor;
-	return 0;
 }
 
 void
@@ -2041,48 +2008,12 @@ main(int argc, char *argv[])
 {
 	xw.l = xw.t = 0;
 	xw.isfixed = False;
-	xsetcursor(cursorshape);
 
 	ARGBEGIN {
-	case 'a':
-		allowaltscreen = 0;
-		break;
-	case 'c':
-		opt_class = EARGF(usage());
-		break;
 	case 'e':
 		if (argc > 0)
 			--argc, ++argv;
 		goto run;
-	case 'f':
-		opt_font = EARGF(usage());
-		break;
-	case 'g':
-		xw.gm = XParseGeometry(EARGF(usage()),
-				&xw.l, &xw.t, &cols, &rows);
-		break;
-	case 'i':
-		xw.isfixed = 1;
-		break;
-	case 'o':
-		opt_io = EARGF(usage());
-		break;
-	case 'l':
-		opt_line = EARGF(usage());
-		break;
-	case 'n':
-		opt_name = EARGF(usage());
-		break;
-	case 't':
-	case 'T':
-		opt_title = EARGF(usage());
-		break;
-	case 'w':
-		opt_embed = EARGF(usage());
-		break;
-	case 'v':
-		die("%s " VERSION "\n", argv0);
-		break;
 	default:
 		usage();
 	} ARGEND;

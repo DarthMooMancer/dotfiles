@@ -2,22 +2,22 @@
 
 include config.mk
 
-REQ = util
-COM = run_command
+# Objects we actually need
+OBJ = slstatus.o util.o
 
 all: slstatus
 
-$(COM:=.o): config.mk $(REQ:=.h) slstatus.h
-slstatus.o: slstatus.c slstatus.h arg.h config.h config.mk $(REQ:=.h)
+slstatus.o: slstatus.c util.h
+	$(CC) -o $@ -c $(CPPFLAGS) $(CFLAGS) slstatus.c
 
-.c.o:
-	$(CC) -o $@ -c $(CPPFLAGS) $(CFLAGS) $<
+util.o: util.c util.h
+	$(CC) -o $@ -c $(CPPFLAGS) $(CFLAGS) util.c
 
-slstatus: slstatus.o $(COM:=.o) $(REQ:=.o)
-	$(CC) -o $@ $(LDFLAGS) $(COM:=.o) $(REQ:=.o) slstatus.o $(LDLIBS)
+slstatus: $(OBJ)
+	$(CC) -o $@ $(LDFLAGS) $(OBJ) $(LDLIBS)
 
 clean:
-	rm -f slstatus slstatus.o $(COM:=.o) $(REQ:=.o)
+	rm -f slstatus $(OBJ)
 
 install: all
 	mkdir -p "$(DESTDIR)$(PREFIX)/bin"

@@ -1,4 +1,3 @@
-/* See LICENSE file for copyright and license details. */
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
@@ -7,8 +6,6 @@
 #include <time.h>
 #include <X11/Xlib.h>
 
-#include "arg.h"
-#include "slstatus.h"
 #include "util.h"
 
 struct arg {
@@ -21,7 +18,10 @@ char buf[1024];
 static volatile sig_atomic_t done;
 static Display *dpy;
 
-#include "config.h"
+const unsigned short interval = 1000;
+const char unknown_str[] = "n/a";
+#define MAXLEN 2048
+
 
 static void
 terminate(const int signo)
@@ -38,11 +38,35 @@ difftimespec(struct timespec *res, struct timespec *a, struct timespec *b)
 	               (a->tv_nsec < b->tv_nsec) * 1E9;
 }
 
-static void
-usage(void)
+const char *
+run_command(const char *cmd)
 {
-	die("usage: %s [-v] [-s] [-1]", argv0);
+	char *p;
+	FILE *fp;
+
+	if (!(fp = popen(cmd, "r"))) {
+		return NULL;
+	}
+
+	p = fgets(buf, sizeof(buf) - 1, fp);
+	if (pclose(fp) < 0) {
+		return NULL;
+	}
+	if (!p)
+		return NULL;
+
+	if ((p = strrchr(buf, '\n')))
+		p[0] = '\0';
+
+	return buf[0] ? buf : NULL;
 }
+
+static const
+struct arg args[] = {
+	{ run_command, 	" %s till swap •  ", 	"sh /home/andrew/.config/suckless/slstatus/scripts/wallpaper-countdown.sh" },
+	{ run_command, 	"VOL at %s  •  ", 	"wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{printf \"%d%%\", $2 * 100}'" },
+	{ run_command,	"%s / 731 installed ", 	"sh -c 'echo $(( ( $(date +%s) - $(stat -c %W /) ) / 86400 ))'" },
+};
 
 int
 main(int argc, char *argv[])
@@ -50,27 +74,9 @@ main(int argc, char *argv[])
 	struct sigaction act;
 	struct timespec start, current, diff, intspec, wait;
 	size_t i, len;
-	int sflag, ret;
+	int ret;
 	char status[MAXLEN];
 	const char *res;
-
-	sflag = 0;
-	ARGBEGIN {
-	case 'v':
-		die("slstatus-"VERSION);
-		/* fallthrough */
-	case '1':
-		done = 1;
-		/* FALLTHROUGH */
-	case 's':
-		sflag = 1;
-		break;
-	default:
-		usage();
-	} ARGEND
-
-	if (argc)
-		usage();
 
 	memset(&act, 0, sizeof(act));
 	act.sa_handler = terminate;
@@ -79,7 +85,7 @@ main(int argc, char *argv[])
 	act.sa_flags |= SA_RESTART;
 	sigaction(SIGUSR1, &act, NULL);
 
-	if (!sflag && !(dpy = XOpenDisplay(NULL)))
+	if (!(dpy = XOpenDisplay(NULL)))
 		die("XOpenDisplay: Failed to open display");
 
 	do {
@@ -98,16 +104,9 @@ main(int argc, char *argv[])
 			len += ret;
 		}
 
-		if (sflag) {
-			puts(status);
-			fflush(stdout);
-			if (ferror(stdout))
-				die("puts:");
-		} else {
-			if (XStoreName(dpy, DefaultRootWindow(dpy), status) < 0)
-				die("XStoreName: Allocation failed");
-			XFlush(dpy);
-		}
+		if (XStoreName(dpy, DefaultRootWindow(dpy), status) < 0)
+			die("XStoreName: Allocation failed");
+		XFlush(dpy);
 
 		if (!done) {
 			if (clock_gettime(CLOCK_MONOTONIC, &current) < 0)
@@ -125,11 +124,9 @@ main(int argc, char *argv[])
 		}
 	} while (!done);
 
-	if (!sflag) {
-		XStoreName(dpy, DefaultRootWindow(dpy), NULL);
-		if (XCloseDisplay(dpy) < 0)
-			die("XCloseDisplay: Failed to close display");
-	}
+	XStoreName(dpy, DefaultRootWindow(dpy), NULL);
+	if (XCloseDisplay(dpy) < 0)
+		die("XCloseDisplay: Failed to close display");
 
 	return 0;
 }

@@ -1,5 +1,4 @@
 /* See LICENSE file for copyright and license details. */
-#include <errno.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -24,16 +23,6 @@ verr(const char *fmt, va_list ap)
 }
 
 void
-warn(const char *fmt, ...)
-{
-	va_list ap;
-
-	va_start(ap, fmt);
-	verr(fmt, ap);
-	va_end(ap);
-}
-
-void
 die(const char *fmt, ...)
 {
 	va_list ap;
@@ -53,10 +42,8 @@ evsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 	ret = vsnprintf(str, size, fmt, ap);
 
 	if (ret < 0) {
-		warn("vsnprintf:");
 		return -1;
 	} else if ((size_t)ret >= size) {
-		warn("vsnprintf: Output truncated");
 		return -1;
 	}
 
@@ -110,7 +97,6 @@ fmt_human(uintmax_t num, int base)
 		prefixlen = LEN(prefix_1024);
 		break;
 	default:
-		warn("fmt_human: Invalid base");
 		return NULL;
 	}
 
@@ -129,7 +115,6 @@ pscanf(const char *path, const char *fmt, ...)
 	int n;
 
 	if (!(fp = fopen(path, "r"))) {
-		warn("fopen '%s':", path);
 		return -1;
 	}
 	va_start(ap, fmt);

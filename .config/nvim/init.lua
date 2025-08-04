@@ -22,12 +22,18 @@ vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
 vim.keymap.set("n", "<leader>ff", "ggVG=")
 vim.keymap.set('n', '<leader><leader>', ":Pick files<CR>")
+vim.keymap.set('n', '<leader>xh', ":Pick help<CR>")
+vim.keymap.set('n', '<leader>xx', ":Pick diagnostic<CR>")
 
+require('mini.pick').setup()
+require('mini.pairs').setup()
+require('mini.extra').setup()
 require("lazy").setup({
 	spec = {
-		"cohama/lexima.vim",
+		{ "echasnovski/mini.pairs", version = '*' },
+		{ 'echasnovski/mini.extra', version = '*' },
 		{ "echasnovski/mini.pick", version = '*' },
 		{ "saghen/blink.cmp", version = "v1.*", opts = {} },
 	}
 })
-require('mini.pick').setup()
+
