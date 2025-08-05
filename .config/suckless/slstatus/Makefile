@@ -16,9 +16,7 @@ clean:
 	rm -f slstatus
 
 install: all
-	mkdir -p "$(DESTDIR)$(PREFIX)/bin"
-	cp -f slstatus "$(DESTDIR)$(PREFIX)/bin"
-	chmod 755 "$(DESTDIR)$(PREFIX)/bin/slstatus"
+	install -Dm755 slstatus "$(DESTDIR)$(PREFIX)/bin/slstatus"
 
 uninstall:
 	rm -f "$(DESTDIR)$(PREFIX)/bin/slstatus"

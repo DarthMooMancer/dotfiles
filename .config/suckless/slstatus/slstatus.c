@@ -31,7 +31,7 @@ static void terminate() {
 	done = 1;
 }
 
-const char* bg_timer(const char *_) {
+const char* bgt(const char *_) {
 	(void)_;
 	static char buf[5];
 	time_t now = time(NULL), last = now;
@@ -76,9 +76,9 @@ int main(int argc, char *argv[]) {
 	int ret;
 	char status[36];
 	static const struct arg args[] = {
-		{ bg_timer, 	" W: %s · ", 	NULL },	
-		{ vol, "V: %s · ", 	NULL },
-		{ age,		"A: %s / 731 ", NULL },
+		{ bgt, 	"W: %s · ",  NULL },	
+		{ vol, 	"V: %s · ",  NULL },
+		{ age,	"A: %sd",    NULL },
 	};
 
 	memset(&act, 0, sizeof(act));
@@ -105,7 +105,6 @@ int main(int argc, char *argv[]) {
 			nanosleep(&ts, NULL);
 		}
 	} while (!done);
-
 	XStoreName(dpy, DefaultRootWindow(dpy), NULL);
 	if (XCloseDisplay(dpy) < 0) die("XCloseDisplay: Failed to close display");
 	return 0;
