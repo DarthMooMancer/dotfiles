@@ -1,4 +1,22 @@
-include config.mk
+.POSIX:
+VERSION = 5.3
+
+PREFIX = /usr/local
+
+X11INC = /usr/X11R6/include
+X11LIB = /usr/X11R6/lib
+
+FREETYPELIBS = -lfontconfig -lXft
+FREETYPEINC = /usr/include/freetype2
+
+INCS = -I$(X11INC) -I$(FREETYPEINC)
+LIBS = -L$(X11LIB) -lX11 $(FREETYPELIBS)
+
+CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L
+CFLAGS   = -std=c99 -pedantic -Wall -Os $(INCS) $(CPPFLAGS)
+LDFLAGS  = $(LIBS)
+
+CC = gcc
 
 SRC = drw.c dmenu.c util.c
 OBJ = $(SRC:.c=.o)
@@ -8,24 +26,20 @@ all: dmenu
 .c.o:
 	$(CC) -c $(CFLAGS) $<
 
-$(OBJ): arg.h config.h config.mk drw.h
+$(OBJ): drw.h
 
 dmenu: dmenu.o drw.o util.o
 	$(CC) -o $@ dmenu.o drw.o util.o $(LDFLAGS)
 
 clean:
-	rm -f dmenu stest $(OBJ)
+	rm -f dmenu $(OBJ)
 
 install: all
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	cp -f dmenu dmenu_path dmenu_run $(DESTDIR)$(PREFIX)/bin
+	cp -f dmenu dmenu_run $(DESTDIR)$(PREFIX)/bin
 	chmod 755 $(DESTDIR)$(PREFIX)/bin/dmenu
-	chmod 755 $(DESTDIR)$(PREFIX)/bin/dmenu_path
 	chmod 755 $(DESTDIR)$(PREFIX)/bin/dmenu_run
 
 uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/dmenu\
-		$(DESTDIR)$(PREFIX)/bin/dmenu_path\
 		$(DESTDIR)$(PREFIX)/bin/dmenu_run\
-
-.PHONY: all clean install uninstall
