@@ -1,4 +1,3 @@
-#include <ctype.h>
 #include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,22 +5,49 @@
 #include <strings.h>
 #include <time.h>
 #include <unistd.h>
+#include <errno.h>
+#include <stdarg.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/Xft/Xft.h>
 
-#include "drw.h"
-#include "util.h"
 
-/* macros */
-#define INTERSECT(x,y,w,h,r)  (MAX(0, MIN((x)+(w),(r).x_org+(r).width)  - MAX((x),(r).x_org)) \
-                             * MAX(0, MIN((y)+(h),(r).y_org+(r).height) - MAX((y),(r).y_org)))
+#define UTF_INVALID 0xFFFD
 #define TEXTW(X)              (drw_fontset_getwidth(drw, (X)) + lrpad)
+#define MAX(A, B)               ((A) > (B) ? (A) : (B))
+#define MIN(A, B)               ((A) < (B) ? (A) : (B))
+#define BETWEEN(X, A, B)        ((A) <= (X) && (X) <= (B))
+#define LENGTH(X)               (sizeof (X) / sizeof (X)[0])
 
-/* enums */
-enum { SchemeNorm, SchemeSel, SchemeOut, SchemeLast }; /* color schemes */
+enum { SchemeNorm, SchemeSel, SchemeOut, SchemeLast };
+
+typedef struct {
+	Cursor cursor;
+} Cur;
+
+typedef struct Fnt {
+	Display *dpy;
+	unsigned int h;
+	XftFont *xfont;
+	FcPattern *pattern;
+	struct Fnt *next;
+} Fnt;
+
+enum { ColFg, ColBg }; /* Clr scheme index */
+typedef XftColor Clr;
+
+typedef struct {
+	unsigned int w, h;
+	Display *dpy;
+	int screen;
+	Window root;
+	Drawable drawable;
+	GC gc;
+	Clr *scheme;
+	Fnt *fonts;
+} Drw;
 
 struct item {
 	char *text;
@@ -30,23 +56,50 @@ struct item {
 };
 
 static char text[BUFSIZ] = "";
-static char *embed;
-static int bh, mw, mh;
-static int inputw = 0;
-static int lrpad; /* sum of left and right padding */
+static int bh, mw, screen, inputw = 0, lrpad;
 static size_t cursor;
 static struct item *items = NULL;
 static struct item *matches, *matchend;
 static struct item *prev, *curr, *next, *sel;
-static int mon = -1, screen;
 
 static Atom clip, utf8;
 static Display *dpy;
-static Window root, parentwin, win;
+static Window root, win;
 static XIC xic;
 
 static Drw *drw;
 static Clr *scheme[SchemeLast];
+
+/* Drawable abstraction */
+Drw *drw_create(Display *dpy, int screen, Window win, unsigned int w, unsigned int h);
+void drw_resize(Drw *drw, unsigned int w, unsigned int h);
+void drw_free(Drw *drw);
+
+/* Fnt abstraction */
+Fnt *drw_fontset_create(Drw* drw, const char *fonts[], size_t fontcount);
+void drw_fontset_free(Fnt* set);
+unsigned int drw_fontset_getwidth(Drw *drw, const char *text);
+unsigned int drw_fontset_getwidth_clamp(Drw *drw, const char *text, unsigned int n);
+void drw_font_getexts(Fnt *font, const char *text, unsigned int len, unsigned int *w, unsigned int *h);
+
+/* Colorscheme abstraction */
+void drw_clr_create(Drw *drw, Clr *dest, const char *clrname);
+Clr *drw_scm_create(Drw *drw, const char *clrnames[], size_t clrcount);
+
+/* Cursor abstraction */
+Cur *drw_cur_create(Drw *drw, int shape);
+void drw_cur_free(Drw *drw, Cur *cursor);
+
+/* Drawing context manipulation */
+void drw_setfontset(Drw *drw, Fnt *set);
+void drw_setscheme(Drw *drw, Clr *scm);
+
+/* Drawing functions */
+void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert);
+int drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert);
+
+/* Map functions */
+void drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h);
 
 static const char *fonts[] = {
 	"CaskaydiaCove NFM style:SemiBold:size=11"
@@ -57,11 +110,382 @@ static const char *colors[SchemeLast][2] = {
 	[SchemeOut] = { "#E67E80", "#272E33" },
 };
 
-static unsigned int lines      = 0;
-static const char worddelimiters[] = " ";
-
 static int (*fstrncmp)(const char *, const char *, size_t) = strncmp;
 static char *(*fstrstr)(const char *, const char *) = strstr;
+
+void die(const char *fmt, ...) {
+	va_list ap;
+	int saved_errno = errno;
+
+	va_start(ap, fmt);
+	vfprintf(stderr, fmt, ap);
+	va_end(ap);
+
+	if (fmt[0] && fmt[strlen(fmt)-1] == ':') fprintf(stderr, " %s", strerror(saved_errno));
+	fputc('\n', stderr);
+	exit(1);
+}
+
+void * ecalloc(size_t nmemb, size_t size) {
+	void *p;
+	if (!(p = calloc(nmemb, size))) die("calloc:");
+	return p;
+}
+
+static int utf8decode(const char *s_in, long *u, int *err) {
+	static const unsigned char lens[] = {
+		/* 0XXXX */ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+		/* 10XXX */ 0, 0, 0, 0, 0, 0, 0, 0,  /* invalid */
+		/* 110XX */ 2, 2, 2, 2,
+		/* 1110X */ 3, 3,
+		/* 11110 */ 4,
+		/* 11111 */ 0,  /* invalid */
+	};
+	static const unsigned char leading_mask[] = { 0x7F, 0x1F, 0x0F, 0x07 };
+	static const unsigned int overlong[] = { 0x0, 0x80, 0x0800, 0x10000 };
+
+	const unsigned char *s = (const unsigned char *)s_in;
+	int len = lens[*s >> 3];
+	*u = UTF_INVALID;
+	*err = 1;
+	if (len == 0) return 1;
+
+	long cp = s[0] & leading_mask[len - 1];
+	for (int i = 1; i < len; ++i) {
+		if (s[i] == '\0' || (s[i] & 0xC0) != 0x80)
+			return i;
+		cp = (cp << 6) | (s[i] & 0x3F);
+	}
+	/* out of range, surrogate, overlong encoding */
+	if (cp > 0x10FFFF || (cp >> 11) == 0x1B || cp < overlong[len - 1]) return len;
+
+	*err = 0;
+	*u = cp;
+	return len;
+}
+
+Drw * drw_create(Display *dpy, int screen, Window root, unsigned int w, unsigned int h) {
+	Drw *drw = ecalloc(1, sizeof(Drw));
+
+	drw->dpy = dpy;
+	drw->screen = screen;
+	drw->root = root;
+	drw->w = w;
+	drw->h = h;
+	drw->drawable = XCreatePixmap(dpy, root, w, h, DefaultDepth(dpy, screen));
+	drw->gc = XCreateGC(dpy, root, 0, NULL);
+	XSetLineAttributes(dpy, drw->gc, 1, LineSolid, CapButt, JoinMiter);
+
+	return drw;
+}
+
+void drw_resize(Drw *drw, unsigned int w, unsigned int h) {
+	if (!drw) return;
+
+	drw->w = w;
+	drw->h = h;
+	if (drw->drawable)
+		XFreePixmap(drw->dpy, drw->drawable);
+	drw->drawable = XCreatePixmap(drw->dpy, drw->root, w, h, DefaultDepth(drw->dpy, drw->screen));
+}
+
+void drw_free(Drw *drw) {
+	XFreePixmap(drw->dpy, drw->drawable);
+	XFreeGC(drw->dpy, drw->gc);
+	drw_fontset_free(drw->fonts);
+	free(drw);
+}
+
+/* This function is an implementation detail. Library users should use
+ * drw_fontset_create instead.
+ */
+static Fnt * xfont_create(Drw *drw, const char *fontname, FcPattern *fontpattern) {
+	Fnt *font;
+	XftFont *xfont = NULL;
+	FcPattern *pattern = NULL;
+
+	if (fontname) {
+		/* Using the pattern found at font->xfont->pattern does not yield the
+		 * same substitution results as using the pattern returned by
+		 * FcNameParse; using the latter results in the desired fallback
+		 * behaviour whereas the former just results in missing-character
+		 * rectangles being drawn, at least with some fonts. */
+		if (!(xfont = XftFontOpenName(drw->dpy, drw->screen, fontname))) {
+			fprintf(stderr, "error, cannot load font from name: '%s'\n", fontname);
+			return NULL;
+		}
+		if (!(pattern = FcNameParse((FcChar8 *) fontname))) {
+			fprintf(stderr, "error, cannot parse font name to pattern: '%s'\n", fontname);
+			XftFontClose(drw->dpy, xfont);
+			return NULL;
+		}
+	} else if (fontpattern) {
+		if (!(xfont = XftFontOpenPattern(drw->dpy, fontpattern))) {
+			fprintf(stderr, "error, cannot load font from pattern.\n");
+			return NULL;
+		}
+	} else {
+		die("no font specified.");
+	}
+
+	font = ecalloc(1, sizeof(Fnt));
+	font->xfont = xfont;
+	font->pattern = pattern;
+	font->h = xfont->ascent + xfont->descent;
+	font->dpy = drw->dpy;
+
+	return font;
+}
+
+static void xfont_free(Fnt *font) {
+	if (!font) return;
+	if (font->pattern) FcPatternDestroy(font->pattern);
+	XftFontClose(font->dpy, font->xfont);
+	free(font);
+}
+
+Fnt* drw_fontset_create(Drw* drw, const char *fonts[], size_t fontcount) {
+	Fnt *cur, *ret = NULL;
+	size_t i;
+
+	if (!drw || !fonts) return NULL;
+
+	for (i = 1; i <= fontcount; i++) {
+		if ((cur = xfont_create(drw, fonts[fontcount - i], NULL))) {
+			cur->next = ret;
+			ret = cur;
+		}
+	}
+	return (drw->fonts = ret);
+}
+
+void drw_fontset_free(Fnt *font) {
+	if (font) {
+		drw_fontset_free(font->next);
+		xfont_free(font);
+	}
+}
+
+void drw_clr_create(Drw *drw, Clr *dest, const char *clrname) {
+	if (!drw || !dest || !clrname) return;
+
+	if (!XftColorAllocName(drw->dpy, DefaultVisual(drw->dpy, drw->screen),
+	                       DefaultColormap(drw->dpy, drw->screen),
+	                       clrname, dest))
+		die("error, cannot allocate color '%s'", clrname);
+}
+
+Clr * drw_scm_create(Drw *drw, const char *clrnames[], size_t clrcount) {
+	size_t i;
+	Clr *ret;
+
+	if (!drw || !clrnames || clrcount < 2 || !(ret = ecalloc(clrcount, sizeof(XftColor)))) return NULL;
+	for (i = 0; i < clrcount; i++) drw_clr_create(drw, &ret[i], clrnames[i]);
+	return ret;
+}
+
+void drw_setfontset(Drw *drw, Fnt *set) {
+	if (drw) drw->fonts = set;
+}
+
+void drw_setscheme(Drw *drw, Clr *scm) {
+	if (drw) drw->scheme = scm;
+}
+
+void drw_rect(Drw *drw, int x, int y, unsigned int w, unsigned int h, int filled, int invert) {
+	if (!drw || !drw->scheme) return;
+	XSetForeground(drw->dpy, drw->gc, invert ? drw->scheme[ColBg].pixel : drw->scheme[ColFg].pixel);
+	if (filled) XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
+	else XDrawRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w - 1, h - 1);
+}
+
+int drw_text(Drw *drw, int x, int y, unsigned int w, unsigned int h, unsigned int lpad, const char *text, int invert) {
+	int ty, ellipsis_x = 0;
+	unsigned int tmpw, ew, ellipsis_w = 0, ellipsis_len, hash, h0, h1;
+	XftDraw *d = NULL;
+	Fnt *usedfont, *curfont, *nextfont;
+	int utf8strlen, utf8charlen, utf8err, render = x || y || w || h;
+	long utf8codepoint = 0;
+	const char *utf8str;
+	FcCharSet *fccharset;
+	FcPattern *fcpattern;
+	FcPattern *match;
+	XftResult result;
+	int charexists = 0, overflow = 0;
+	/* keep track of a couple codepoints for which we have no match. */
+	static unsigned int nomatches[128], ellipsis_width, invalid_width;
+	static const char invalid[] = "�";
+
+	if (!drw || (render && (!drw->scheme || !w)) || !text || !drw->fonts) return 0;
+	if (!render) {
+		w = invert ? invert : ~invert;
+	} else {
+		XSetForeground(drw->dpy, drw->gc, drw->scheme[invert ? ColFg : ColBg].pixel);
+		XFillRectangle(drw->dpy, drw->drawable, drw->gc, x, y, w, h);
+		if (w < lpad) return x + w;
+		d = XftDrawCreate(drw->dpy, drw->drawable,
+		                  DefaultVisual(drw->dpy, drw->screen),
+		                  DefaultColormap(drw->dpy, drw->screen));
+		x += lpad;
+		w -= lpad;
+	}
+
+	usedfont = drw->fonts;
+	if (!ellipsis_width && render) ellipsis_width = drw_fontset_getwidth(drw, "...");
+	if (!invalid_width && render) invalid_width = drw_fontset_getwidth(drw, invalid);
+	while (1) {
+		ew = ellipsis_len = utf8err = utf8charlen = utf8strlen = 0;
+		utf8str = text;
+		nextfont = NULL;
+		while (*text) {
+			utf8charlen = utf8decode(text, &utf8codepoint, &utf8err);
+			for (curfont = drw->fonts; curfont; curfont = curfont->next) {
+				charexists = charexists || XftCharExists(drw->dpy, curfont->xfont, utf8codepoint);
+				if (charexists) {
+					drw_font_getexts(curfont, text, utf8charlen, &tmpw, NULL);
+					if (ew + ellipsis_width <= w) {
+						/* keep track where the ellipsis still fits */
+						ellipsis_x = x + ew;
+						ellipsis_w = w - ew;
+						ellipsis_len = utf8strlen;
+					}
+
+					if (ew + tmpw > w) {
+						overflow = 1;
+						/* called from drw_fontset_getwidth_clamp():
+						 * it wants the width AFTER the overflow
+						 */
+						if (!render) x += tmpw;
+						else utf8strlen = ellipsis_len;
+					} else if (curfont == usedfont) {
+						text += utf8charlen;
+						utf8strlen += utf8err ? 0 : utf8charlen;
+						ew += utf8err ? 0 : tmpw;
+					} else {
+						nextfont = curfont;
+					}
+					break;
+				}
+			}
+
+			if (overflow || !charexists || nextfont || utf8err) break;
+			else charexists = 0;
+		}
+
+		if (utf8strlen) {
+			if (render) {
+				ty = y + (h - usedfont->h) / 2 + usedfont->xfont->ascent;
+				XftDrawStringUtf8(d, &drw->scheme[invert ? ColBg : ColFg],
+				                  usedfont->xfont, x, ty, (XftChar8 *)utf8str, utf8strlen);
+			}
+			x += ew;
+			w -= ew;
+		}
+		if (utf8err && (!render || invalid_width < w)) {
+			if (render) drw_text(drw, x, y, w, h, 0, invalid, invert);
+			x += invalid_width;
+			w -= invalid_width;
+		}
+		if (render && overflow) drw_text(drw, ellipsis_x, y, ellipsis_w, h, 0, "...", invert);
+
+		if (!*text || overflow) {
+			break;
+		} else if (nextfont) {
+			charexists = 0;
+			usedfont = nextfont;
+		} else {
+			/* Regardless of whether or not a fallback font is found, the
+			 * character must be drawn. */
+			charexists = 1;
+
+			hash = (unsigned int)utf8codepoint;
+			hash = ((hash >> 16) ^ hash) * 0x21F0AAAD;
+			hash = ((hash >> 15) ^ hash) * 0xD35A2D97;
+			h0 = ((hash >> 15) ^ hash) % LENGTH(nomatches);
+			h1 = (hash >> 17) % LENGTH(nomatches);
+			/* avoid expensive XftFontMatch call when we know we won't find a match */
+			if (nomatches[h0] == utf8codepoint || nomatches[h1] == utf8codepoint)
+				goto no_match;
+
+			fccharset = FcCharSetCreate();
+			FcCharSetAddChar(fccharset, utf8codepoint);
+
+			if (!drw->fonts->pattern) {
+				/* Refer to the comment in xfont_create for more information. */
+				die("the first font in the cache must be loaded from a font string.");
+			}
+
+			fcpattern = FcPatternDuplicate(drw->fonts->pattern);
+			FcPatternAddCharSet(fcpattern, FC_CHARSET, fccharset);
+			FcPatternAddBool(fcpattern, FC_SCALABLE, FcTrue);
+
+			FcConfigSubstitute(NULL, fcpattern, FcMatchPattern);
+			FcDefaultSubstitute(fcpattern);
+			match = XftFontMatch(drw->dpy, drw->screen, fcpattern, &result);
+
+			FcCharSetDestroy(fccharset);
+			FcPatternDestroy(fcpattern);
+
+			if (match) {
+				usedfont = xfont_create(drw, NULL, match);
+				if (usedfont && XftCharExists(drw->dpy, usedfont->xfont, utf8codepoint)) {
+					for (curfont = drw->fonts; curfont->next; curfont = curfont->next)
+						; /* NOP */
+					curfont->next = usedfont;
+				} else {
+					xfont_free(usedfont);
+					nomatches[nomatches[h0] ? h1 : h0] = utf8codepoint;
+no_match:
+					usedfont = drw->fonts;
+				}
+			}
+		}
+	}
+	if (d) XftDrawDestroy(d);
+	return x + (render ? w : 0);
+}
+
+void drw_map(Drw *drw, Window win, int x, int y, unsigned int w, unsigned int h) {
+	if (!drw) return;
+	XCopyArea(drw->dpy, drw->drawable, win, drw->gc, x, y, w, h, x, y);
+	XSync(drw->dpy, False);
+}
+
+unsigned int drw_fontset_getwidth(Drw *drw, const char *text) {
+	if (!drw || !drw->fonts || !text) return 0;
+	return drw_text(drw, 0, 0, 0, 0, 0, text, 0);
+}
+
+unsigned int drw_fontset_getwidth_clamp(Drw *drw, const char *text, unsigned int n) {
+	unsigned int tmp = 0;
+	if (drw && drw->fonts && text && n) tmp = drw_text(drw, 0, 0, 0, 0, 0, text, n);
+	return MIN(n, tmp);
+}
+
+void drw_font_getexts(Fnt *font, const char *text, unsigned int len, unsigned int *w, unsigned int *h) {
+	XGlyphInfo ext;
+
+	if (!font || !text) return;
+
+	XftTextExtentsUtf8(font->dpy, font->xfont, (XftChar8 *)text, len, &ext);
+	if (w) *w = ext.xOff;
+	if (h) *h = font->h;
+}
+
+Cur * drw_cur_create(Drw *drw, int shape) {
+	Cur *cur;
+	if (!drw || !(cur = ecalloc(1, sizeof(Cur)))) return NULL;
+	cur->cursor = XCreateFontCursor(drw->dpy, shape);
+
+	return cur;
+}
+
+void drw_cur_free(Drw *drw, Cur *cursor) {
+	if (!cursor) return;
+
+	XFreeCursor(drw->dpy, cursor->cursor);
+	free(cursor);
+}
 
 static unsigned int textw_clamp(const char *str, unsigned int n) {
 	unsigned int w = drw_fontset_getwidth_clamp(drw, str, n) + lrpad;
@@ -80,13 +504,12 @@ static void appenditem(struct item *item, struct item **list, struct item **last
 static void calcoffsets(void) {
 	int i, n;
 
-	if (lines > 0) n = lines * bh;
-	else n = mw - (inputw + TEXTW("<") + TEXTW(">"));
+	n = mw - (inputw + TEXTW("<") + TEXTW(">"));
 	/* calculate which items will begin the next page and previous page */
 	for (i = 0, next = curr; next; next = next->right)
-		if ((i += (lines > 0) ? bh : textw_clamp(next->text, n)) > n) break;
+		if ((i += textw_clamp(next->text, n)) > n) break;
 	for (i = 0, prev = curr; prev && prev->left; prev = prev->left)
-		if ((i += (lines > 0) ? bh : textw_clamp(prev->left->text, n)) > n) break;
+		if ((i += textw_clamp(prev->left->text, n)) > n) break;
 }
 
 static void cleanup(void) {
@@ -101,19 +524,6 @@ static void cleanup(void) {
 	XCloseDisplay(dpy);
 }
 
-static char * cistrstr(const char *h, const char *n) {
-	size_t i;
-
-	if (!n[0]) return (char *)h;
-	for (; *h; ++h) {
-		for (i = 0; n[i] && tolower((unsigned char)n[i]) ==
-		            tolower((unsigned char)h[i]); ++i)
-			;
-		if (n[i] == '\0') return (char *)h;
-	}
-	return NULL;
-}
-
 static int drawitem(struct item *item, int x, int y, int w) {
 	if (item == sel) drw_setscheme(drw, scheme[SchemeSel]);
 	else if (item->out) drw_setscheme(drw, scheme[SchemeOut]);
@@ -124,13 +534,14 @@ static int drawitem(struct item *item, int x, int y, int w) {
 static void drawmenu(void) {
 	unsigned int curpos;
 	struct item *item;
-	int x = 0, y = 0, w;
+	int x = 0;
+	unsigned int w;
 
 	drw_setscheme(drw, scheme[SchemeNorm]);
-	drw_rect(drw, 0, 0, mw, mh, 1, 1);
+	drw_rect(drw, 0, 0, mw, bh, 1, 1);
 
 	/* draw input field */
-	w = (lines > 0 || !matches) ? mw - x : inputw;
+	w = (!matches) ? mw - x : inputw;
 	drw_setscheme(drw, scheme[SchemeNorm]);
 	drw_text(drw, x, 0, w, bh, lrpad / 2, text, 0);
 
@@ -140,12 +551,8 @@ static void drawmenu(void) {
 		drw_rect(drw, x + curpos, 2, 2, bh - 4, 1, 0);
 	}
 
-	if (lines > 0) {
-		/* draw vertical list */
-		for (item = curr; item != next; item = item->right)
-			drawitem(item, x, y += bh, mw - x);
 
-	} else if (matches) {
+	if (matches) {
 		/* draw horizontal list */
 		x += inputw;
 		w = TEXTW("<");
@@ -162,7 +569,7 @@ static void drawmenu(void) {
 			drw_text(drw, mw - w, 0, w, bh, lrpad / 2, ">", 0);
 		}
 	}
-	drw_map(drw, win, 0, 0, mw, mh);
+	drw_map(drw, win, 0, 0, mw, bh);
 }
 
 static void grabfocus(void) {
@@ -183,7 +590,6 @@ static void grabkeyboard(void) {
 	struct timespec ts = { .tv_sec = 0, .tv_nsec = 1000000  };
 	int i;
 
-	if (embed) return;
 	/* try to grab keyboard, we may have to wait for another process to ungrab */
 	for (i = 0; i < 1000; i++) {
 		if (XGrabKeyboard(dpy, DefaultRootWindow(dpy), True, GrabModeAsync,
@@ -250,24 +656,6 @@ static void insert(const char *str, ssize_t n) {
 	match();
 }
 
-static size_t nextrune(int inc) {
-	ssize_t n;
-
-	/* return location of next utf8 rune in the given direction (+1 or -1) */
-	for (n = cursor + inc; n + inc >= 0 && (text[n] & 0xc0) == 0x80; n += inc);
-	return n;
-}
-
-static void movewordedge(int dir) {
-	if (dir < 0) { /* move cursor to the start of the word*/
-		while (cursor > 0 && strchr(worddelimiters, text[nextrune(-1)])) cursor = nextrune(-1);
-		while (cursor > 0 && !strchr(worddelimiters, text[nextrune(-1)])) cursor = nextrune(-1);
-	} else { /* move cursor to the end of the word */
-		while (text[cursor] && strchr(worddelimiters, text[cursor])) cursor = nextrune(+1);
-		while (text[cursor] && !strchr(worddelimiters, text[cursor])) cursor = nextrune(+1);
-	}
-}
-
 static void keypress(XKeyEvent *ev) {
 	char buf[64];
 	int len;
@@ -276,218 +664,45 @@ static void keypress(XKeyEvent *ev) {
 
 	len = XmbLookupString(xic, ev, buf, sizeof buf, &ksym, &status);
 	switch (status) {
-	default: /* XLookupNone, XBufferOverflow */
-		return;
-	case XLookupChars: /* composed string from input method */
-		goto insert;
-	case XLookupKeySym:
-	case XLookupBoth: /* a KeySym and a string are returned: use keysym */
-		break;
-	}
-
-	if (ev->state & ControlMask) {
-		switch(ksym) {
-		case XK_a: ksym = XK_Home;      break;
-		case XK_b: ksym = XK_Left;      break;
-		case XK_c: ksym = XK_Escape;    break;
-		case XK_d: ksym = XK_Delete;    break;
-		case XK_e: ksym = XK_End;       break;
-		case XK_f: ksym = XK_Right;     break;
-		case XK_g: ksym = XK_Escape;    break;
-		case XK_h: ksym = XK_BackSpace; break;
-		case XK_i: ksym = XK_Tab;       break;
-		case XK_j: /* fallthrough */
-		case XK_J: /* fallthrough */
-		case XK_m: /* fallthrough */
-		case XK_M: ksym = XK_Return; ev->state &= ~ControlMask; break;
-		case XK_n: ksym = XK_Down;      break;
-		case XK_p: ksym = XK_Up;        break;
-
-		case XK_k: /* delete right */
-			text[cursor] = '\0';
-			match();
-			break;
-		case XK_u: /* delete left */
-			insert(NULL, 0 - cursor);
-			break;
-		case XK_w: /* delete word */
-			while (cursor > 0 && strchr(worddelimiters, text[nextrune(-1)]))
-				insert(NULL, nextrune(-1) - cursor);
-			while (cursor > 0 && !strchr(worddelimiters, text[nextrune(-1)]))
-				insert(NULL, nextrune(-1) - cursor);
-			break;
-		case XK_y: /* paste selection */
-		case XK_Y:
-			XConvertSelection(dpy, (ev->state & ShiftMask) ? clip : XA_PRIMARY,
-			                  utf8, utf8, win, CurrentTime);
-			return;
-		case XK_Left:
-		case XK_KP_Left:
-			movewordedge(-1);
-			goto draw;
-		case XK_Right:
-		case XK_KP_Right:
-			movewordedge(+1);
-			goto draw;
-		case XK_Return:
-		case XK_KP_Enter:
-			break;
-		case XK_bracketleft:
-			cleanup();
-			exit(1);
-		default:
-			return;
-		}
-	} else if (ev->state & Mod1Mask) {
-		switch(ksym) {
-		case XK_b:
-			movewordedge(-1);
-			goto draw;
-		case XK_f:
-			movewordedge(+1);
-			goto draw;
-		case XK_g: ksym = XK_Home;  break;
-		case XK_G: ksym = XK_End;   break;
-		case XK_h: ksym = XK_Up;    break;
-		case XK_j: ksym = XK_Next;  break;
-		case XK_k: ksym = XK_Prior; break;
-		case XK_l: ksym = XK_Down;  break;
-		default:
-			return;
-		}
+		default: return; /* XLookupNone, XBufferOverflow */
+		case XLookupChars: goto insert; /* composed string from input method */
+		case XLookupKeySym:
+		case XLookupBoth: break; /* a KeySym and a string are returned: use keysym */
 	}
 
 	switch(ksym) {
-	default:
-insert:
-		if (!iscntrl((unsigned char)*buf))
+		default:
+		insert:
 			insert(buf, len);
-		break;
-	case XK_Delete:
-	case XK_KP_Delete:
-		if (text[cursor] == '\0')
-			return;
-		cursor = nextrune(+1);
-		/* fallthrough */
-	case XK_BackSpace:
-		if (cursor == 0)
-			return;
-		insert(NULL, nextrune(-1) - cursor);
-		break;
-	case XK_End:
-	case XK_KP_End:
-		if (text[cursor] != '\0') {
-			cursor = strlen(text);
 			break;
-		}
-		if (next) {
-			/* jump to end of list and position items in reverse */
-			curr = matchend;
-			calcoffsets();
-			curr = prev;
-			calcoffsets();
-			while (next && (curr = curr->right))
+		case XK_Escape:
+			cleanup();
+			exit(1);
+		case XK_Left:
+			if (sel && sel->left && (sel = sel->left)->right == curr) {
+				curr = prev;
 				calcoffsets();
-		}
-		sel = matchend;
-		break;
-	case XK_Escape:
-		cleanup();
-		exit(1);
-	case XK_Home:
-	case XK_KP_Home:
-		if (sel == matches) {
-			cursor = 0;
+			}
 			break;
-		}
-		sel = curr = matches;
-		calcoffsets();
-		break;
-	case XK_Left:
-	case XK_KP_Left:
-		if (cursor > 0 && (!sel || !sel->left || lines > 0)) {
-			cursor = nextrune(-1);
+		case XK_Right:
+			if (sel && sel->right && (sel = sel->right) == next) {
+				curr = next;
+				calcoffsets();
+			}
 			break;
-		}
-		if (lines > 0)
-			return;
-		/* fallthrough */
-	case XK_Up:
-	case XK_KP_Up:
-		if (sel && sel->left && (sel = sel->left)->right == curr) {
-			curr = prev;
-			calcoffsets();
-		}
-		break;
-	case XK_Next:
-	case XK_KP_Next:
-		if (!next)
-			return;
-		sel = curr = next;
-		calcoffsets();
-		break;
-	case XK_Prior:
-	case XK_KP_Prior:
-		if (!prev)
-			return;
-		sel = curr = prev;
-		calcoffsets();
-		break;
-	case XK_Return:
-	case XK_KP_Enter:
-		puts((sel && !(ev->state & ShiftMask)) ? sel->text : text);
-		if (!(ev->state & ControlMask)) {
+		case XK_Return:
+			puts(sel ? sel->text : text);
 			cleanup();
 			exit(0);
-		}
-		if (sel)
-			sel->out = 1;
-		break;
-	case XK_Right:
-	case XK_KP_Right:
-		if (text[cursor] != '\0') {
-			cursor = nextrune(+1);
 			break;
-		}
-		if (lines > 0)
-			return;
-		/* fallthrough */
-	case XK_Down:
-	case XK_KP_Down:
-		if (sel && sel->right && (sel = sel->right) == next) {
-			curr = next;
-			calcoffsets();
-		}
-		break;
-	case XK_Tab:
-		if (!sel)
-			return;
-		cursor = strnlen(sel->text, sizeof text - 1);
-		memcpy(text, sel->text, cursor);
-		text[cursor] = '\0';
-		match();
-		break;
-	}
-
-draw:
-	drawmenu();
-}
-
-static void paste(void) {
-	char *p, *q;
-	int di;
-	unsigned long dl;
-	Atom da;
-
-	/* we have been given the current selection, now insert it into input */
-	if (XGetWindowProperty(dpy, win, utf8, 0, (sizeof text / 4) + 1, False,
-	                   utf8, &da, &di, &dl, &dl, (unsigned char **)&p)
-	    == Success && p) {
-		insert(p, (q = strchr(p, '\n')) ? q - p : (ssize_t)strlen(p));
-		XFree(p);
+		case XK_BackSpace:
+			if (cursor == 0) return;
+			insert(NULL, -1);
+			break;
 	}
 	drawmenu();
 }
+
 
 static void readstdin(void) {
 	char *line = NULL;
@@ -507,7 +722,6 @@ static void readstdin(void) {
 	}
 	free(line);
 	if (items) items[i].text = NULL;
-	lines = MIN(lines, i);
 }
 
 static void run(void) {
@@ -521,7 +735,7 @@ static void run(void) {
 			cleanup();
 			exit(1);
 		case Expose:
-			if (ev.xexpose.count == 0) drw_map(drw, win, 0, 0, mw, mh);
+			if (ev.xexpose.count == 0) drw_map(drw, win, 0, 0, mw, bh);
 			break;
 		case FocusIn:
 			/* regrab focus from parent window */
@@ -529,9 +743,6 @@ static void run(void) {
 			break;
 		case KeyPress:
 			keypress(&ev.xkey);
-			break;
-		case SelectionNotify:
-			if (ev.xselection.property == utf8) paste();
 			break;
 		case VisibilityNotify:
 			if (ev.xvisibility.state != VisibilityUnobscured) XRaiseWindow(dpy, win);
@@ -541,38 +752,32 @@ static void run(void) {
 }
 
 static void setup(void) {
-	int x, y, i, j;
-	unsigned int du;
+	int x = 0, y = 0;
 	XSetWindowAttributes swa;
 	XIM xim;
-	Window w, dw, *dws;
 	XWindowAttributes wa;
 	XClassHint ch = {"dmenu", "dmenu"};
 	/* init appearance */
-	for (j = 0; j < SchemeLast; j++) scheme[j] = drw_scm_create(drw, colors[j], 2);
+	for (int j = 0; j < SchemeLast; j++) scheme[j] = drw_scm_create(drw, colors[j], 2);
 
 	clip = XInternAtom(dpy, "CLIPBOARD",   False);
 	utf8 = XInternAtom(dpy, "UTF8_STRING", False);
 
 	/* calculate menu geometry */
 	bh = drw->fonts->h + 2;
-	lines = MAX(lines, 0);
-	mh = (lines + 1) * bh;
 	{
-		if (!XGetWindowAttributes(dpy, parentwin, &wa))
-			die("could not get embedding window attributes: 0x%lx", parentwin);
-		x = 0;
-		y = 0;
+		if (!XGetWindowAttributes(dpy, root, &wa))
+			die("could not get embedding window attributes: 0x%lx", root);
 		mw = wa.width;
 	}
-	inputw = mw / 3; /* input width: ~33% of monitor width */
+	inputw = mw / 5; /* input width: ~20% of monitor width */
 	match();
 
 	/* create menu window */
 	swa.override_redirect = True;
 	swa.background_pixel = scheme[SchemeNorm][ColBg].pixel;
 	swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
-	win = XCreateWindow(dpy, root, x, y, mw, mh, 0,
+	win = XCreateWindow(dpy, root, x, y, mw, bh, 0,
 	                    CopyFromParent, CopyFromParent, CopyFromParent,
 	                    CWOverrideRedirect | CWBackPixel | CWEventMask, &swa);
 	XSetClassHint(dpy, win, &ch);
@@ -583,75 +788,24 @@ static void setup(void) {
 	xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, XNClientWindow, win, XNFocusWindow, win, NULL);
 
 	XMapRaised(dpy, win);
-	if (embed) {
-		XReparentWindow(dpy, win, parentwin, x, y);
-		XSelectInput(dpy, parentwin, FocusChangeMask | SubstructureNotifyMask);
-		if (XQueryTree(dpy, parentwin, &dw, &w, &dws, &du) && dws) {
-			for (i = 0; i < du && dws[i] != win; ++i)
-				XSelectInput(dpy, dws[i], FocusChangeMask);
-			XFree(dws);
-		}
-		grabfocus();
-	}
-	drw_resize(drw, mw, mh);
+	drw_resize(drw, mw, bh);
 	drawmenu();
-}
-
-static void usage(void) {
-	die("usage: dmenu [-bfiv] [-l lines] [-fn font] [-m monitor]\n"
-	    "             [-nb color] [-nf color] [-sb color] [-sf color] [-w windowid]");
 }
 
 int main(int argc, char *argv[]) {
 	XWindowAttributes wa;
-	int i, fast = 0;
-
-	for (i = 1; i < argc; i++)
-		/* these options take no arguments */
-		if (!strcmp(argv[i], "-f"))   /* grabs keyboard before reading stdin */
-			fast = 1;
-		else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
-			fstrncmp = strncasecmp;
-			fstrstr = cistrstr;
-		} else if (i + 1 == argc)
-			usage();
-		/* these options take one argument */
-		else if (!strcmp(argv[i], "-l"))   /* number of lines in vertical list */
-			lines = atoi(argv[++i]);
-		else if (!strcmp(argv[i], "-m"))
-			mon = atoi(argv[++i]);
-		else if (!strcmp(argv[i], "-fn"))  /* font or font set */
-			fonts[0] = argv[++i];
-		else if (!strcmp(argv[i], "-nb"))  /* normal background color */
-			colors[SchemeNorm][ColBg] = argv[++i];
-		else if (!strcmp(argv[i], "-nf"))  /* normal foreground color */
-			colors[SchemeNorm][ColFg] = argv[++i];
-		else if (!strcmp(argv[i], "-sb"))  /* selected background color */
-			colors[SchemeSel][ColBg] = argv[++i];
-		else if (!strcmp(argv[i], "-sf"))  /* selected foreground color */
-			colors[SchemeSel][ColFg] = argv[++i];
-		else if (!strcmp(argv[i], "-w"))   /* embedding window id */
-			embed = argv[++i];
-		else
-			usage();
 
 	if (!setlocale(LC_CTYPE, "") || !XSupportsLocale()) fputs("warning: no locale support\n", stderr);
 	if (!(dpy = XOpenDisplay(NULL))) die("cannot open display");
 	screen = DefaultScreen(dpy);
 	root = RootWindow(dpy, screen);
-	if (!embed || !(parentwin = strtol(embed, NULL, 0))) parentwin = root;
-	if (!XGetWindowAttributes(dpy, parentwin, &wa)) die("could not get embedding window attributes: 0x%lx", parentwin);
+	if (!XGetWindowAttributes(dpy, root, &wa)) die("could not get embedding window attributes: 0x%lx", root);
 	drw = drw_create(dpy, screen, root, wa.width, wa.height);
 	if (!drw_fontset_create(drw, fonts, LENGTH(fonts))) die("no fonts could be loaded.");
 	lrpad = drw->fonts->h;
 
-	if (fast && !isatty(0)) {
-		grabkeyboard();
-		readstdin();
-	} else {
-		readstdin();
-		grabkeyboard();
-	}
+	readstdin();
+	grabkeyboard();
 	setup();
 	run();
 
