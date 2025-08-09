@@ -13,7 +13,6 @@
 #include <X11/Xutil.h>
 #include <X11/Xft/Xft.h>
 
-
 #define UTF_INVALID 0xFFFD
 #define TEXTW(X)              (drw_fontset_getwidth(drw, (X)) + lrpad)
 #define MAX(A, B)               ((A) > (B) ? (A) : (B))
@@ -22,6 +21,7 @@
 #define LENGTH(X)               (sizeof (X) / sizeof (X)[0])
 
 enum { SchemeNorm, SchemeSel, SchemeOut, SchemeLast };
+enum { ColFg, ColBg };
 
 typedef struct {
 	Cursor cursor;
@@ -35,7 +35,6 @@ typedef struct Fnt {
 	struct Fnt *next;
 } Fnt;
 
-enum { ColFg, ColBg }; /* Clr scheme index */
 typedef XftColor Clr;
 
 typedef struct {
