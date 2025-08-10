@@ -9,23 +9,6 @@
 #include <sys/stat.h>
 #include <X11/Xlib.h>
 
-void die(const char *msg) {
-	fprintf(stderr, "%s\n", msg);
-	exit(1);
-}
-
-const char* bgt() {
-	static char buf[5];
-	time_t now = time(NULL), last = now;
-	FILE *f = fopen("/tmp/last_wallpaper_time", "r");
-	if(fscanf(f, "%ld", &last) != 1) last = now;
-	fclose(f);
-	int rem = 600 - (int)(now - last);
-	if (rem < 0) rem = 0;
-	if (snprintf(buf, sizeof(buf), "%d:%02d", (rem / 60), (rem % 60)) < 0) return NULL;
-	return buf;
-}
-
 const char* vol() {
 	static char buf[5];
 	float v;
@@ -50,23 +33,25 @@ const char* age() {
 
 volatile sig_atomic_t done = 0;
 void terminate() { done = 1; }
+void die(const char *msg) {
+	fprintf(stderr, "%s\n", msg);
+	exit(1);
+}
 
 int main() {
 	Display *dpy;
+	size_t i, len;
+	int ret;
+	char status[18];
 	struct sigaction act = { .sa_handler = terminate, .sa_flags = SA_RESTART };
 	struct arg {
 		const char *(*func)(void);
 		const char *fmt;
 	};
 	const struct arg args[] = {
-		{ bgt, 	"W: %s " }, // 9 bytes
 		{ vol, 	"V: %s " }, // 9 bytes
 		{ age,	"A: %sd" }, // 8 bytes
 	};
-	size_t i, len;
-	int ret;
-	char status[32];
-	const char *res;
 
 	sigaction(SIGINT,  &act, NULL);
 	sigaction(SIGTERM, &act, NULL);
@@ -74,8 +59,8 @@ int main() {
 	if (!(dpy = XOpenDisplay(NULL))) die("XOpenDisplay: Failed to open display");
 	while(!done) {
 		status[0] = '\0';
-		for (i = len = 0; i < 3; i++) {
-			res = args[i].func();
+		for (i = len = 0; i < 2; i++) {
+			const char *res = args[i].func();
 			if (!res) res = "n/a";
 			if ((ret = snprintf(status + len, sizeof(status) - len, args[i].fmt, res)) < 0) break;
 			len += ret;

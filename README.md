@@ -3,3 +3,5 @@ This config is a meant to be very minimal and easy to setup by just using suckle
 My Dwm-Dots is slightly out of date for my system and configuration but it works fine and uses catppuccin if you like that. This one uses everforest
 
 This is a heavily modified version of dwm, not in the sense of new features and bloat, but removing things that I dont need for my setup. If it doesnt work for you I would recommend pulling a clean dwm setup and then just copying my config.h or use a different set of dotfiles.
+For instance:
+* Slstatus: >100 lines of code including MakeFile. Heavily configured to be simple with just 2 args being my volume and days since system install

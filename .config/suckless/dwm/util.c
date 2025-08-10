@@ -5,9 +5,7 @@
 
 #include "util.h"
 
-void
-die(const char *fmt, ...)
-{
+void die(const char *fmt, ...) {
 	va_list ap;
 
 	va_start(ap, fmt);
@@ -17,19 +15,13 @@ die(const char *fmt, ...)
 	if (fmt[0] && fmt[strlen(fmt)-1] == ':') {
 		fputc(' ', stderr);
 		perror(NULL);
-	} else {
-		fputc('\n', stderr);
-	}
+	} else fputc('\n', stderr);
 
 	exit(1);
 }
 
-void *
-ecalloc(size_t nmemb, size_t size)
-{
+void * ecalloc(size_t nmemb, size_t size) {
 	void *p;
-
-	if (!(p = calloc(nmemb, size)))
-		die("calloc:");
+	if (!(p = calloc(nmemb, size))) die("calloc:");
 	return p;
 }
