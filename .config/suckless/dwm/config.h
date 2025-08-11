@@ -1,5 +1,5 @@
-static const unsigned int borderpx  = 3;
-static const unsigned int gappx	    = 10;
+static const unsigned int borderpx  = 2;
+static const unsigned int gappx	    = 5;
 static const unsigned int snap      = 32;
 static const int showbar            = 1;
 static const int topbar             = 1;
@@ -10,7 +10,7 @@ static const char *colors[][3]      = {
 	[SchemeSel]  = { "#374145", "#DBBC7F", "#A7C080" },
 };
 
-static const char *tags[] = { "1", "2", "3", "4" };
+static const char *tags[] = { "1", "2", "3" };
 static const Rule rules[] = {
 	{ "PrismLauncher", "prismlauncher",	NULL, 	1 << 2,	  0,   -1 },
 	{ "librewolf", "Navigator",	NULL, 	1 << 1,	  0,   -1 }, 

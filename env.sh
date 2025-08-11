@@ -13,17 +13,17 @@ CONFIG="${PERSONAL_HOME}.config/"
 LOCAL="${PERSONAL_HOME}.local/"
 
 ORIGINAL_DOTS=(
-	"${DOTFILES_CONFIG}nvim/"
 	"${DOTFILES_CONFIG}suckless/"
+	"${DOTFILES_CONFIG}nvim/"
 	"${DOTFILES_LOCAL}share/fonts/"
 	"${DOTFILES_HOME}.xinitrc"
 	"${DOTFILES_HOME}.bashrc") 
 COPY_DOTS=(
-	"${CONFIG}nvim/"
 	"${CONFIG}suckless/"
+	"${CONFIG}nvim/"
 	"${LOCAL}share/fonts/"
 	"${PERSONAL_HOME}.xinitrc"
-	"${PERSONAL_HOME}.bashrc") 
+	"${PERSONAL_HOME}.bashrc")
 
 for x in "${!COPY_DOTS[@]}"; do
 	i="${COPY_DOTS[${x}]}"
@@ -52,11 +52,11 @@ for x in "${!ORIGINAL_DOTS[@]}"; do
 
 done
 
-echo -e "${GREEN}Re-caching fonts${RESET}"
-fc-cache -f
-
 echo -e "${GREEN}Rebuilding Suckless Software${RESET}"
 for x in "${CONFIG}suckless"/*/; do
 	[[ -d "${x}" ]] || continue
 	cd "${x}" && make && doas make install && make clean
 done
+
+echo -e "${GREEN}Re-caching fonts${RESET}"
+fc-cache -f
