@@ -7,4 +7,4 @@ elif [ "$1" == "down" ]; then
 fi
 
 TEST=$(wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{printf "%d%%", $2 * 100}')
-dunstify -t 2000 "Volume: ${TEST}" -h int:value:${TEST%%%} -h string:synchronous:volume
+dunstify "Volume: ${TEST}" -h int:value:${TEST%%%} -h string:synchronous:volume
