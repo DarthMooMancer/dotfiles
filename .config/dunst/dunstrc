@@ -33,7 +33,6 @@ separator_color = frame
 sort = yes
 idle_threshold = 10
 
-
 font = CaskaydiaCove Nerd Font Mono 10
 line_height = 0
 markup = full
@@ -65,9 +64,7 @@ class = Dunst
 corner_radius = 5
 corners = all
 ignore_dbusclose = false
-
 force_xwayland = false
-
 force_xinerama = false
 
 mouse_left_click = close_current
@@ -78,7 +75,6 @@ background = "#272e33"
 foreground = "#d3c6aa"
 highlight = "#a7c080"
 timeout = 2
-# default_icon = dialog-information
 
 [experimental]
 per_monitor_dpi = false
