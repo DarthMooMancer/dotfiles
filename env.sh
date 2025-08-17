@@ -15,12 +15,14 @@ LOCAL="${PERSONAL_HOME}.local/"
 ORIGINAL_DOTS=(
 	"${DOTFILES_CONFIG}suckless/"
 	"${DOTFILES_CONFIG}nvim/"
+	"${DOTFILES_CONFIG}dunst/"
 	"${DOTFILES_LOCAL}share/fonts/"
 	"${DOTFILES_HOME}.xinitrc"
 	"${DOTFILES_HOME}.bashrc") 
 COPY_DOTS=(
 	"${CONFIG}suckless/"
 	"${CONFIG}nvim/"
+	"${CONFIG}dunst/"
 	"${LOCAL}share/fonts/"
 	"${PERSONAL_HOME}.xinitrc"
 	"${PERSONAL_HOME}.bashrc")
