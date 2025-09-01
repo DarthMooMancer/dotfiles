@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-cachedir="${XDG_CACHE_HOME:-"$HOME/.cache"}"
-
-[ ! -e "$cachedir" ] && mkdir -p "$cachedir"
-
-IFS=:
-cat "$cachedir/dmenu_run" | dmenu "$@" | ${SHELL:-"/bin/sh"} &
