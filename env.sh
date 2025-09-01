@@ -16,6 +16,8 @@ ORIGINAL_DOTS=(
 	"${DOTFILES_CONFIG}suckless/"
 	"${DOTFILES_CONFIG}nvim/"
 	"${DOTFILES_CONFIG}dunst/"
+	"${DOTFILES_CONFIG}tmux/"
+	"${DOTFILES_LOCAL}bin/"
 	"${DOTFILES_LOCAL}share/fonts/"
 	"${DOTFILES_HOME}.xinitrc"
 	"${DOTFILES_HOME}.bashrc") 
@@ -23,6 +25,8 @@ COPY_DOTS=(
 	"${CONFIG}suckless/"
 	"${CONFIG}nvim/"
 	"${CONFIG}dunst/"
+	"${CONFIG}tmux/"
+	"${LOCAL}bin/"
 	"${LOCAL}share/fonts/"
 	"${PERSONAL_HOME}.xinitrc"
 	"${PERSONAL_HOME}.bashrc")

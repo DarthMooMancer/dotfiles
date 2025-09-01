@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+selected="${1:-$(find ~/* ~/dotfiles/*/ ~/personal/*/*/ ~/personal -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort -u | fzf)}"
+[[ -z $selected ]] && exit 0
+
+# Create a new window in the current tmux session
+tmux new-window -c "$selected"
+
+# Hydrate with sessionizer if it exists
+for file in "$selected/.tmux-sessionizer" "$HOME/.tmux-sessionizer"; do
+    [[ -f $file ]] && tmux send-keys -t "$(tmux display-message -p '#S')" "source $file" C-m && break
+done
+
+# Attach or switch to the tmux session
+if [[ -z $TMUX ]]; then
+    exec tmux attach-session
+else
+    tmux switch-client
+fi
