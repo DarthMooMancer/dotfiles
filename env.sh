@@ -20,7 +20,8 @@ ORIGINAL_DOTS=(
 	"${DOTFILES_LOCAL}bin/"
 	"${DOTFILES_LOCAL}share/fonts/"
 	"${DOTFILES_HOME}.xinitrc"
-	"${DOTFILES_HOME}.bashrc") 
+	"${DOTFILES_HOME}.bashrc"
+) 
 COPY_DOTS=(
 	"${CONFIG}suckless/"
 	"${CONFIG}nvim/"
@@ -29,33 +30,22 @@ COPY_DOTS=(
 	"${LOCAL}bin/"
 	"${LOCAL}share/fonts/"
 	"${PERSONAL_HOME}.xinitrc"
-	"${PERSONAL_HOME}.bashrc")
-
-for x in "${!COPY_DOTS[@]}"; do
-	i="${COPY_DOTS[${x}]}"
-	if [[ -d ${i} ]]; then
-		echo -e "${i} ${GREEN}exists: Removing${RESET}"
-		doas rm -rd "${i}"
-	elif [[ -f ${i} ]]; then
-		echo -e "${i} ${GREEN}exists: Removing${RESET}"
-		doas rm -rf "${i}"
-	else
-		echo -e "${i} ${YELLOW}does not exist: Skipping${RESET}"
-	fi
-done
+	"${PERSONAL_HOME}.bashrc"
+)
 
 for x in "${!ORIGINAL_DOTS[@]}"; do
-	i="${ORIGINAL_DOTS[${x}]}"
-	if [[ -d ${i} ]]; then
-		echo "Directory: ${i} -> ${COPY_DOTS[${x}]}"
-		cp -r ${i} ${COPY_DOTS[${x}]}
-	fi
+	src="${ORIGINAL_DOTS[$x]}"
+	dst="${COPY_DOTS[$x]}"
 
-	if [[ -f ${i} ]]; then
-		echo "File: ${i} -> ${COPY_DOTS[${x}]}"
-		cp ${i} ${COPY_DOTS[${x}]}
+	if [[ -d "$src" ]]; then
+		echo -e "Syncing directory: ${GREEN}${src}${RESET} -> ${YELLOW}${dst}${RESET}"
+		rsync -avh --delete "$src" "$dst"
+	elif [[ -f "$src" ]]; then
+		echo -e "Syncing file: ${GREEN}${src}${RESET} -> ${YELLOW}${dst}${RESET}"
+		rsync -avh "$src" "$dst"
+	else
+		echo -e "${RED}Missing: ${src}${RESET}"
 	fi
-
 done
 
 echo -e "${GREEN}Rebuilding Suckless Software${RESET}"
