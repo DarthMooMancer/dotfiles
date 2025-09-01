@@ -1,7 +1,10 @@
-This config is a meant to be very minimal and easy to setup by just using suckless software and neovim. That is the extent of the dotfiles. Check the env.sh script before running but it will just copy the files properly based on my name, so change your usr in the config.
+# Gentoo Dotfiles - Minimalistic and Stable
 
-My Dwm-Dots is slightly out of date for my system and configuration but it works fine and uses catppuccin if you like that. This one uses everforest
+`Programming Flow: Tmux + Neovim + St (Workspace 1)`
 
-This is a heavily modified version of dwm, not in the sense of new features and bloat, but removing things that I dont need for my setup. If it doesnt work for you I would recommend pulling a clean dwm setup and then just copying my config.h or use a different set of dotfiles.
-For instance:
-* Slstatus: >100 lines of code including MakeFile. Heavily configured to be simple with just 2 args being my volume and days since system install
+`Normal Flow: Librewolf (Workspace 2), steam + prismlauncher + anything else (Workspace 3)`
+
+`Everforest + Gentoo + Dwm = Reliable & Asthetically Pleasing`
+
+<img width="1920" height="1080" alt="2025-09-01-143524_1920x1080_scrot" src="https://github.com/user-attachments/assets/24a19c23-a07e-4bab-82b3-103e509f4b63" />
+<img width="1920" height="1080" alt="2025-09-01-144110_1920x1080_scrot" src="https://github.com/user-attachments/assets/18f705cc-bc58-4e6e-af36-ecc3e9965e54" />
