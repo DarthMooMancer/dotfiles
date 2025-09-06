@@ -1,10 +1,18 @@
-# Gentoo Dotfiles - Minimalistic and Stable
+# Zenful Gentoo Dotfiles - Minimalistic and Stable
 
-`Programming Flow: Tmux + Neovim + St (Workspace 1)`
+`Everforest + Gentoo + Dwm`
+`Workspace 1: St + Tmux + Neovim`
+`Workspace 2: Librewolf`
+`Workspace 3: Anything else`
 
-`Normal Flow: Librewolf (Workspace 2), steam + prismlauncher + anything else (Workspace 3)`
-
-`Everforest + Gentoo + Dwm = Reliable & Asthetically Pleasing`
-
-<img width="1920" height="1080" alt="2025-09-01-143524_1920x1080_scrot" src="https://github.com/user-attachments/assets/24a19c23-a07e-4bab-82b3-103e509f4b63" />
-<img width="1920" height="1080" alt="2025-09-01-144110_1920x1080_scrot" src="https://github.com/user-attachments/assets/18f705cc-bc58-4e6e-af36-ecc3e9965e54" />
+```
+- Packages Needed:
+  - Libs:
+    - libXinerama, libXft, libX11
+  - X11:
+    - xwallpaper, xrandr, xinput
+  - Software:
+    - neovim, tmux, dunst, pipewire + wireplumber, picom (Pijulius's Picom for animations)
+```
+<img width="1920" height="1080" alt="2025-09-06-151621_1920x1080_scrot" src="https://github.com/user-attachments/assets/c42103f8-ae24-4205-8e95-ed2c40b0013d" />
+<img width="1920" height="1080" alt="2025-09-06-151513_1920x1080_scrot" src="https://github.com/user-attachments/assets/449a5be8-66ab-4c3e-8db5-ac600fb80bd7" />
