@@ -131,7 +131,6 @@ static Monitor *createmon(void);
 static void destroynotify(XEvent *e);
 static void detach(Client *c);
 static void detachstack(Client *c);
-static Monitor *dirtomon(int dir);
 static void drawbar(Monitor *m);
 static void drawbars(void);
 static void enternotify(XEvent *e);
@@ -175,7 +174,6 @@ static void seturgent(Client *c, int urg);
 static void showhide(Client *c);
 static void spawn(const Arg *arg);
 static void tag(const Arg *arg);
-static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
 static void togglefloating(const Arg *arg);
 static void toggletag(const Arg *arg);
@@ -636,21 +634,6 @@ detachstack(Client *c)
 	}
 }
 
-Monitor *
-dirtomon(int dir)
-{
-	Monitor *m = NULL;
-
-	if (dir > 0) {
-		if (!(m = selmon->next))
-			m = mons;
-	} else if (selmon == mons)
-		for (m = mons; m->next; m = m->next);
-	else
-		for (m = mons; m->next != selmon; m = m->next);
-	return m;
-}
-
 void
 drawbar(Monitor *m)
 {
@@ -1095,16 +1078,8 @@ movemouse(const Arg *arg)
 
 				nx = ocx + (ev.xmotion.x - x);
 				ny = ocy + (ev.xmotion.y - y);
-				if (abs(selmon->wx - nx) < snap)
-					nx = selmon->wx;
-				else if (abs((selmon->wx + selmon->ww) - (nx + WIDTH(c))) < snap)
-					nx = selmon->wx + selmon->ww - WIDTH(c);
-				if (abs(selmon->wy - ny) < snap)
-					ny = selmon->wy;
-				else if (abs((selmon->wy + selmon->wh) - (ny + HEIGHT(c))) < snap)
-					ny = selmon->wy + selmon->wh - HEIGHT(c);
 				if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
-					&& (abs(nx - c->x) > snap || abs(ny - c->y) > snap))
+					&& (abs(nx - c->x) > 0 || abs(ny - c->y) > 0))
 					togglefloating(NULL);
 				if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
 					resize(c, nx, ny, c->w, c->h, 1);
@@ -1253,7 +1228,7 @@ resizemouse(const Arg *arg)
 					&& c->mon->wy + nh >= selmon->wy && c->mon->wy + nh <= selmon->wy + selmon->wh)
 				{
 					if (!c->isfloating && selmon->lt[selmon->sellt]->arrange
-						&& (abs(nw - c->w) > snap || abs(nh - c->h) > snap))
+						&& (abs(nw - c->w) > 0 || abs(nh - c->h) > 0))
 						togglefloating(NULL);
 				}
 				if (!selmon->lt[selmon->sellt]->arrange || c->isfloating)
@@ -1591,14 +1566,6 @@ tag(const Arg *arg)
 		focus(NULL);
 		arrange(selmon);
 	}
-}
-
-void
-tagmon(const Arg *arg)
-{
-	if (!selmon->sel || !mons->next)
-		return;
-	sendmon(selmon->sel, dirtomon(arg->i));
 }
 
 void

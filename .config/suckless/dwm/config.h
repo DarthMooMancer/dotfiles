@@ -1,6 +1,5 @@
 static const unsigned int borderpx  = 2;
 static const unsigned int gappx	    = 5;
-static const unsigned int snap      = 32;
 static const int showbar            = 1;
 static const int topbar             = 1;
 
@@ -38,7 +37,7 @@ static const Layout layouts[] = {
 #define SHCMD(cmd) { .v = (const char*[]){ "/bin/sh", "-c", cmd, NULL } }
 
 static char dmenumon[2] = "0";
-static const char *dmenucmd[] = { "dmenu_run", NULL }; // "-m", dmenumon, NULL };
+static const char *dmenucmd[] = { "dmenu_run", NULL };
 static const char *termcmd[]  = { "st", NULL };
 static const char *browsercmd[]  = { "librewolf", NULL };
 
@@ -57,8 +56,6 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_Return,			zoom,           {0} },
 	{ MODKEY|ShiftMask,             XK_space,			togglefloating, {0} },
 	{ MODKEY|ShiftMask,             XK_0,				tag,            {.ui = ~0 } },
-	{ MODKEY|ShiftMask,             XK_comma,  			tagmon,         {.i = -1 } },
-	{ MODKEY|ShiftMask,             XK_period, 		   	tagmon,         {.i = +1 } },
 
 	{ 0, 				XF86XK_AudioRaiseVolume,   	spawn, 		SHCMD("sh /home/andrew/.config/suckless/dwm/scripts/volume.sh up") },
 	{ 0, 				XF86XK_AudioLowerVolume,   	spawn, 		SHCMD("sh /home/andrew/.config/suckless/dwm/scripts/volume.sh down") },
