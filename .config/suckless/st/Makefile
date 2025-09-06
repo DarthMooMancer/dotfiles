@@ -8,11 +8,10 @@ X11LIB = /usr/X11R6/lib
 PKG_CONFIG = pkg-config
 
 # includes and libs
-INCS = $(shell pkg-config --cflags x11 fontconfig freetype2 harfbuzz) # -I$(X11INC)
+INCS = $(shell pkg-config --cflags x11 fontconfig freetype2) # -I$(X11INC)
 LIBS = -L$(X11LIB) -lm -lrt -lX11 -lutil -lXft \
        `$(PKG_CONFIG) --libs fontconfig` \
-       `$(PKG_CONFIG) --cflags freetype2` \
-       `$(PKG_CONFIG) --libs harfbuzz`
+       `$(PKG_CONFIG) --libs freetype2`
 
 # flags
 STCPPFLAGS = -D_XOPEN_SOURCE=600
@@ -22,7 +21,7 @@ STLDFLAGS = $(LIBS) $(LDFLAGS)
 # compiler and linker
 CC = gcc
 
-SRC = st.c x.c hb.c
+SRC = st.c x.c
 OBJ = $(SRC:.c=.o)
 
 all: st
@@ -32,7 +31,6 @@ all: st
 
 st.o: config.h st.h win.h
 x.o: arg.h config.h st.h win.h
-hb.o: st.h
 
 $(OBJ): config.h
 
