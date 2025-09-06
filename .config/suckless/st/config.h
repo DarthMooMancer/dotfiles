@@ -70,6 +70,8 @@ static int bellvolume = 0;
 char *termname = "st-256color";
 unsigned int tabspaces = 8;
 
+float alpha = 0.8;
+
 static const char *colorname[] = {
 	/* 8 normal colors */
 	"#343f44", // black
