@@ -11,9 +11,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
-#ifdef XINERAMA
-#include <X11/extensions/Xinerama.h>
-#endif
 #include <X11/Xft/Xft.h>
 
 #include "drw.h"
@@ -620,11 +617,6 @@ setup(void)
 	Window w, dw, *dws;
 	XWindowAttributes wa;
 	XClassHint ch = {"dmenu", "dmenu"};
-#ifdef XINERAMA
-	XineramaScreenInfo *info;
-	Window pw;
-	int a, di, n, area = 0;
-#endif
 	/* init appearance */
 	for (j = 0; j < SchemeLast; j++)
 		scheme[j] = drw_scm_create(drw, colors[j], 2);
@@ -636,38 +628,6 @@ setup(void)
 	bh = drw->fonts->h + 2;
 	lines = MAX(lines, 0);
 	mh = (lines + 1) * bh;
-#ifdef XINERAMA
-	i = 0;
-	if (parentwin == root && (info = XineramaQueryScreens(dpy, &n))) {
-		XGetInputFocus(dpy, &w, &di);
-		if (mon >= 0 && mon < n)
-			i = mon;
-		else if (w != root && w != PointerRoot && w != None) {
-			/* find top-level window containing current input focus */
-			do {
-				if (XQueryTree(dpy, (pw = w), &dw, &w, &dws, &du) && dws)
-					XFree(dws);
-			} while (w != root && w != pw);
-			/* find xinerama screen with which the window intersects most */
-			if (XGetWindowAttributes(dpy, pw, &wa))
-				for (j = 0; j < n; j++)
-					if ((a = INTERSECT(wa.x, wa.y, wa.width, wa.height, info[j])) > area) {
-						area = a;
-						i = j;
-					}
-		}
-		/* no focused window is on screen, so use pointer location instead */
-		if (mon < 0 && !area && XQueryPointer(dpy, root, &dw, &dw, &x, &y, &di, &di, &du))
-			for (i = 0; i < n; i++)
-				if (INTERSECT(x, y, 1, 1, info[i]) != 0)
-					break;
-
-		x = info[i].x_org;
-		y = info[i].y_org + (topbar ? 0 : info[i].height - mh);
-		mw = info[i].width;
-		XFree(info);
-	} else
-#endif
 	{
 		if (!XGetWindowAttributes(dpy, parentwin, &wa))
 			die("could not get embedding window attributes: 0x%lx",
@@ -775,11 +735,6 @@ main(int argc, char *argv[])
 	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
 		die("no fonts could be loaded.");
 	lrpad = drw->fonts->h;
-
-#ifdef __OpenBSD__
-	if (pledge("stdio rpath", NULL) == -1)
-		die("pledge");
-#endif
 
 	if (fast && !isatty(0)) {
 		grabkeyboard();
