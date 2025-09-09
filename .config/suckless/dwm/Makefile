@@ -15,7 +15,7 @@ LDFLAGS  = ${LIBS}
 
 CC = gcc
 
-SRC = drw.c dwm.c util.c
+SRC = bar.c drw.c dwm.c util.c
 OBJ = ${SRC:.c=.o}
 
 all: dwm

@@ -14,6 +14,7 @@
 #include <X11/Xutil.h>
 #include <X11/Xft/Xft.h>
 
+#include "bar.h"
 #include "drw.h"
 #include "util.h"
 
@@ -649,6 +650,7 @@ drawbar(Monitor *m)
 		return;
 	/* draw status first so it can be overdrawn by tags later */
 	if (m == selmon) { /* status is only drawn on selected monitor */
+		execute_bar(stext, sizeof(stext));
 		drw_setscheme(drw, scheme[SchemeNorm]);
 		tw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
 		drw_text(drw, m->ww - tw, 0, tw, bh, 0, stext, 0);

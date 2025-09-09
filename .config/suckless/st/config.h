@@ -66,7 +66,6 @@ static unsigned int cursorthickness = 2;
  */
 static int bellvolume = 0;
 
-// char *termname = "st-256color";
 char *termname = "st-256color";
 unsigned int tabspaces = 8;
 

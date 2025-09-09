@@ -1,7 +1,7 @@
 function! everforest#get_configuration() "{{{
   return {
         \ 'background': get(g:, 'everforest_background', 'medium'),
-        \ 'transparent_background': get(g:, 'everforest_transparent_background', 1),
+        \ 'transparent_background': get(g:, 'everforest_transparent_background', 2),
         \ 'dim_inactive_windows': get(g:, 'everforest_dim_inactive_windows', 0),
         \ 'disable_italic_comment': get(g:, 'everforest_disable_italic_comment', 0),
         \ 'enable_italic': get(g:, 'everforest_enable_italic', 0),
