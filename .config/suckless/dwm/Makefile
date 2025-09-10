@@ -1,24 +1,11 @@
 PREFIX = /usr/local
 
-X11INC = /usr/X11R6/include
-X11LIB = /usr/X11R6/lib
-
-FREETYPELIBS = -lfontconfig -lXft
-FREETYPEINC = /usr/include/freetype2
-
-INCS = -I${X11INC} -I${FREETYPEINC}
-LIBS = -L${X11LIB} -lX11 ${FREETYPELIBS}
-
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700L
-CFLAGS   = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os ${INCS} ${CPPFLAGS}
-LDFLAGS  = ${LIBS}
-
-CC = gcc
+CFLAGS   = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os -I/usr/X11R6/include -I/usr/include/freetype2 ${CPPFLAGS}
+LDFLAGS  = -L/usr/X11R6/lib -lX11 -lfontconfig -lXft
 
 SRC = bar.c drw.c dwm.c util.c
 OBJ = ${SRC:.c=.o}
-
-all: dwm
 
 .c.o:
 	${CC} -c ${CFLAGS} $<
@@ -26,12 +13,12 @@ all: dwm
 ${OBJ}: config.h 
 
 dwm: ${OBJ}
-	${CC} -o $@ ${OBJ} ${LDFLAGS}
+	gcc -o $@ ${OBJ} ${LDFLAGS}
 
 clean:
 	rm -f dwm ${OBJ}
 
-install: all
+install: dwm
 	install -Dm755 dwm ${DESTDIR}${PREFIX}/bin/dwm
 
 uninstall:
