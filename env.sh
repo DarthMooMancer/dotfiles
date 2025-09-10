@@ -4,7 +4,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 RESET='\033[0m'
 
-DOTFILES_HOME="/home/andrew/dotfiles/"
+DOTFILES_HOME="/home/andrew/personal/dotfiles/"
 DOTFILES_CONFIG="${DOTFILES_HOME}.config/"
 DOTFILES_LOCAL="${DOTFILES_HOME}.local/"
 
@@ -16,7 +16,6 @@ ORIGINAL_DOTS=(
 	"${DOTFILES_CONFIG}suckless/"
 	"${DOTFILES_CONFIG}nvim/"
 	"${DOTFILES_CONFIG}dunst/"
-	"${DOTFILES_CONFIG}tmux/"
 	"${DOTFILES_CONFIG}picom.conf"
 	"${DOTFILES_LOCAL}bin/"
 	"${DOTFILES_LOCAL}share/fonts/"
@@ -27,7 +26,6 @@ COPY_DOTS=(
 	"${CONFIG}suckless/"
 	"${CONFIG}nvim/"
 	"${CONFIG}dunst/"
-	"${CONFIG}tmux/"
 	"${CONFIG}picom.conf"
 	"${LOCAL}bin/"
 	"${LOCAL}share/fonts/"
@@ -53,7 +51,7 @@ done
 echo -e "${GREEN}Rebuilding Suckless Software${RESET}"
 for x in "${CONFIG}suckless"/*/; do
 	[[ -d "${x}" ]] || continue
-	cd "${x}" && make && doas make install && make clean
+	cd "${x}" && make && doas make install && make clean && pkill dwm
 done
 
 echo -e "${GREEN}Re-caching fonts${RESET}"

@@ -1,17 +1,18 @@
-# dmenu - dynamic menu
-# See LICENSE file for copyright and license details.
+PREFIX = /usr/local
 
-include config.mk
+CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700 -D_POSIX_C_SOURCE=200809L
+CFLAGS   = -std=c99 -pedantic -Wall -Os -I/usr/X11R6/include -I/usr/include/freetype2 $(CPPFLAGS)
+LDFLAGS  = -L/usr/X11R6/lib -lX11 -lfontconfig -lXft
+
+CC = gcc
 
 SRC = drw.c dmenu.c util.c
 OBJ = $(SRC:.c=.o)
 
-all: dmenu
-
 .c.o:
 	$(CC) -c $(CFLAGS) $<
 
-$(OBJ): arg.h config.h config.mk drw.h
+$(OBJ): arg.h config.h drw.h
 
 dmenu: dmenu.o drw.o util.o
 	$(CC) -o $@ dmenu.o drw.o util.o $(LDFLAGS)

@@ -686,10 +686,7 @@ main(int argc, char *argv[])
 
 	for (i = 1; i < argc; i++)
 		/* these options take no arguments */
-		if (!strcmp(argv[i], "-v")) {      /* prints version information */
-			puts("dmenu-"VERSION);
-			exit(0);
-		} else if (!strcmp(argv[i], "-b")) /* appears at the bottom of the screen */
+		if (!strcmp(argv[i], "-b")) /* appears at the bottom of the screen */
 			topbar = 0;
 		else if (!strcmp(argv[i], "-f"))   /* grabs keyboard before reading stdin */
 			fast = 1;
