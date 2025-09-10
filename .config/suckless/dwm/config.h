@@ -57,6 +57,7 @@ static const Key keys[] = {
 	{ MODKEY|ShiftMask,             XK_space,			togglefloating, {0} },
 	{ MODKEY|ShiftMask,             XK_0,				tag,            {.ui = ~0 } },
 
+	{ MODKEY,			XK_c,   			spawn, 		SHCMD("sh /home/andrew/.config/suckless/dwm/scripts/calc.sh") },
 	{ 0, 				XF86XK_AudioRaiseVolume,   	spawn, 		SHCMD("sh /home/andrew/.config/suckless/dwm/scripts/volume.sh up") },
 	{ 0, 				XF86XK_AudioLowerVolume,   	spawn, 		SHCMD("sh /home/andrew/.config/suckless/dwm/scripts/volume.sh down") },
 
