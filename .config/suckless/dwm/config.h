@@ -46,6 +46,7 @@ static const Key keys[] = {
 	{ MODKEY,                       XK_Return, 			spawn,          {.v = termcmd } },
 	{ MODKEY,                       XK_space,      			spawn,          {.v = dmenucmd } },
 	{ MODKEY,                       XK_f,      			spawn,          {.v = browsercmd } },
+	{ MODKEY|ShiftMask,             XK_l,      			spawn,          SHCMD("sh /home/andrew/.config/suckless/dmenu/scripts/powermenu.sh") },
 	{ MODKEY,                       XK_h,				focusstack,     {.i = +1 } },
 	{ MODKEY,                       XK_l,				focusstack,     {.i = -1 } },
 	{ MODKEY,                       XK_j,				setmfact,       {.f = -0.05} },
