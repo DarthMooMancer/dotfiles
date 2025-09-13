@@ -4,7 +4,7 @@ CPPFLAGS = -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=700L
 CFLAGS   = -std=c99 -pedantic -Wall -Wno-deprecated-declarations -Os -I/usr/X11R6/include -I/usr/include/freetype2 ${CPPFLAGS}
 LDFLAGS  = -L/usr/X11R6/lib -lX11 -lfontconfig -lXft
 
-SRC = bar.c drw.c dwm.c util.c
+SRC = drw.c dwm.c util.c
 OBJ = ${SRC:.c=.o}
 
 .c.o:

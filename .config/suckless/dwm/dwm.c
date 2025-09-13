@@ -14,7 +14,6 @@
 #include <X11/Xutil.h>
 #include <X11/Xft/Xft.h>
 
-#include "bar.h"
 #include "drw.h"
 #include "util.h"
 
