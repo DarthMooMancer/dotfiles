@@ -104,10 +104,7 @@ struct Monitor {
 
 typedef struct {
 	const char *class;
-	const char *instance;
-	const char *title;
 	unsigned int tags;
-	int isfloating;
 } Rule;
 
 /* function declarations */
@@ -165,7 +162,6 @@ static void showhide(Client *c);
 static void spawn(const Arg *arg);
 static void tag(const Arg *arg);
 static void tile(Monitor *m);
-static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
 static void unfocus(Client *c, int setfocus);
 static void unmanage(Client *c, int destroyed);
@@ -225,25 +221,18 @@ struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
 
 /* function implementations */
 void applyrules(Client *c) {
-	const char *class, *instance;
-	unsigned int i;
+	const char *class;
 	const Rule *r;
 	XClassHint ch = { NULL, NULL };
 
 	/* rule matching */
-	c->isfloating = 0;
 	c->tags = 0;
 	XGetClassHint(dpy, c->win, &ch);
 	class    = ch.res_class ? ch.res_class : broken;
-	instance = ch.res_name  ? ch.res_name  : broken;
 
-	for (i = 0; i < LENGTH(rules); i++) {
+	for (unsigned int i = 0; i < LENGTH(rules); i++) {
 		r = &rules[i];
-		if ((!r->title || strstr(c->name, r->title))
-			&& (!r->class || strstr(class, r->class))
-			&& (!r->instance || strstr(instance, r->instance)))
-		{
-			c->isfloating = r->isfloating;
+		if (!r->class || strstr(class, r->class)) {
 			c->tags |= r->tags;
 		}
 	}
@@ -1251,23 +1240,8 @@ void tile(Monitor *m) {
 
 		}
 }
-
-void toggletag(const Arg *arg) {
-	unsigned int newtags;
-
-	if (!selmon->sel)
-		return;
-	newtags = selmon->sel->tags ^ (arg->ui & TAGMASK);
-	if (newtags) {
-		selmon->sel->tags = newtags;
-		focus(NULL);
-		arrange(selmon);
-	}
-}
-
 void toggleview(const Arg *arg) {
 	unsigned int newtagset = selmon->tagset[selmon->seltags] ^ (arg->ui & TAGMASK);
-
 	if (newtagset) {
 		selmon->tagset[selmon->seltags] = newtagset;
 		focus(NULL);
