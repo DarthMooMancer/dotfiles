@@ -37,25 +37,16 @@ static const Layout layouts[] = {
 
 #include "X11/XF86keysym.h"
 static const Key keys[] = {
-	{ MODKEY,                       XK_Return, 			spawn,          SHCMD("st") },
-	{ MODKEY,                       XK_space,      			spawn,          SHCMD("dmenu_run")  },
-	{ MODKEY,                       XK_f,      			spawn,          SHCMD("librewolf") },
-	{ MODKEY,                       XK_j,				focusstack,     {.i = +1 } },
-	{ MODKEY,                       XK_k,				focusstack,     {.i = -1 } },
-	{ MODKEY,                       XK_h,				setmfact,       {.f = -0.05} },
-	{ MODKEY,                       XK_l,				setmfact,       {.f = +0.05} },
-	{ MODKEY,                       XK_i,				incnmaster,     {.i = +1 } },
-	{ MODKEY,                       XK_d,				incnmaster,     {.i = -1 } },
-	{ MODKEY,			XK_q,				killclient,     {0} },
-	{ MODKEY|ShiftMask,             XK_Return,			zoom,           {0} },
-	{ MODKEY|ShiftMask,             XK_space,			togglefloating, {0} },
-	{ MODKEY|ShiftMask,             XK_0,				tag,            {.ui = ~0 } },
-
-	{ 0, 				XF86XK_AudioRaiseVolume,   	spawn, 		SHCMD("sh /home/andrew/.config/suckless/dwm/scripts/volume.sh up") },
-	{ 0, 				XF86XK_AudioLowerVolume,   	spawn, 		SHCMD("sh /home/andrew/.config/suckless/dwm/scripts/volume.sh down") },
-
-	TAGKEYS(                        XK_1,						0 )
-	TAGKEYS(                        XK_2,						1 )
-	TAGKEYS(                        XK_3,						2 )
-	TAGKEYS(                        XK_4,						3 )
+	{ MODKEY,           XK_Return,		     spawn,      SHCMD("st") },
+	{ MODKEY,           XK_space,		     spawn,      SHCMD("dmenu_run")  },
+	{ MODKEY,           XK_f,		     spawn,      SHCMD("librewolf") },
+	{ MODKEY,           XK_j,      		     focusstack, {.i = +1 } },
+	{ MODKEY,           XK_k,      		     focusstack, {.i = -1 } },
+	{ MODKEY,           XK_h,      		     setmfact,   {.f = -0.05} },
+	{ MODKEY,           XK_l,      		     setmfact,   {.f = +0.05} },
+	{ MODKEY,	    XK_q,      		     killclient, {0} },
+	{ MODKEY|ShiftMask, XK_Return, 		     zoom,  	 {0} },
+	{ 0, 	            XF86XK_AudioRaiseVolume, spawn, 	 SHCMD("sh /home/andrew/.config/suckless/dwm/scripts/volume.sh up") },
+	{ 0, 	            XF86XK_AudioLowerVolume, spawn, 	 SHCMD("sh /home/andrew/.config/suckless/dwm/scripts/volume.sh down") },
+	TAGKEYS(XK_1, 0) TAGKEYS(XK_2, 1) TAGKEYS(XK_3, 2)
 };
