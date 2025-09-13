@@ -11,10 +11,10 @@ static const char *colors[][3]      = {
 
 static const char *tags[] = { "1", "2", "3" };
 static const Rule rules[] = {
-	{ "st-256color", "st-256color",		NULL, 	1,        0,   -1 },
-	{ "librewolf", "Navigator",		NULL, 	1 << 1,	  0,   -1 }, 
-	{ "PrismLauncher", "prismlauncher",	NULL, 	1 << 2,	  0,   -1 },
-	{ "steam", "steamwebhelper",		NULL, 	1 << 2,   0,   -1 }, 
+	{ "st-256color", "st-256color",		NULL, 	1,        0 },
+	{ "librewolf", "Navigator",		NULL, 	1 << 1,	  0 }, 
+	{ "PrismLauncher", "prismlauncher",	NULL, 	1 << 2,	  0 },
+	{ "steam", "steamwebhelper",		NULL, 	1 << 2,   0 }, 
 };
 
 static const float mfact     = 0.55;
