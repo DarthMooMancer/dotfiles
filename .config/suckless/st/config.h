@@ -1,4 +1,4 @@
-static char *font = "CaskaydiaCove Nerd Font Mono:weight=180:size=11.5:antialias=true:autohint=true";
+static char *font = "Cascadia Mono:style=Bold:size=11:antialias=true:autohint=true";
 static int borderpx = 10;
 
 /*

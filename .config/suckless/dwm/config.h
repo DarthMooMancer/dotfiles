@@ -13,7 +13,7 @@ static const unsigned int gappx	    = 5;
 static const int showbar            = 1;
 static const int topbar             = 1;
 
-static const char *fonts[]          = { "Cascadia Mono:style:Medium:size=10:antialias=true:autohint=true" };
+static const char *fonts[]          = { "Cascadia Mono:style:Bold:size=10:antialias=true:autohint=true" };
 static const char *colors[][3]      = {
 	[SchemeNorm] = { "#D3C6AA", "#272E33", "#83C092" },
 	[SchemeSel]  = { "#374145", "#DBBC7F", "#A7C080" },
