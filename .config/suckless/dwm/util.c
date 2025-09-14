@@ -26,7 +26,7 @@ const char* age() {
 }
 
 void execute_bar(char *out, size_t len) {
-    snprintf(out, len, "V: %s  A: %s", vol(), age());
+    snprintf(out, len, " V: %s A: %s ", vol(), age());
 }
 
 void die(const char *fmt, ...) {

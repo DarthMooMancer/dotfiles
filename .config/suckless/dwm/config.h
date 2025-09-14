@@ -24,7 +24,7 @@ static const int lockfullscreen = 1;
 static const int refreshrate = 120;
 
 static const Layout layouts[] = {
-	{ "[]=",      tile },
+	{ "T",      tile },
 };
 
 #define MODKEY Mod1Mask
