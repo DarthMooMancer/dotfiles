@@ -3,7 +3,7 @@ static const unsigned int gappx	    = 5;
 static const int showbar            = 1;
 static const int topbar             = 1;
 
-static const char *fonts[]          = { "CaskaydiaCove NFM style:SemiBold:size=11" };
+static const char *fonts[]          = { "CaskaydiaCove NFM style:SemiBold:size=10" };
 static const char *colors[][3]      = {
 	[SchemeNorm] = { "#D3C6AA", "#272E33", "#83C092" },
 	[SchemeSel]  = { "#374145", "#DBBC7F", "#A7C080" },
@@ -24,7 +24,7 @@ static const int lockfullscreen = 1;
 static const int refreshrate = 120;
 
 static const Layout layouts[] = {
-	{ "[]=",      tile },
+	{ "T",      tile },
 };
 
 #define MODKEY Mod1Mask
